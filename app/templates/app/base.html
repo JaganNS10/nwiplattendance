@@ -1,0 +1,482 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}NWI Attendance{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+    /* Premium Corporate — Green + Gold (NWI Brand) */
+    --bg-base:    #f0f4f0;
+    --bg-surface: #ffffff;
+    --bg-card:    #ffffff;
+    --bg-hover:   #f0faf4;
+    --border:     rgba(34,97,50,0.15);
+    --border-glow:rgba(34,97,50,0.35);
+
+    /* Green + Gold gradient */
+    --grad:       linear-gradient(135deg, #1a6132 0%, #2d8a4e 50%, #f5c842 100%);
+    --grad-blue:  linear-gradient(135deg, #1a6132, #2d8a4e);
+    --accent:     #1a6132;
+    --accent-lt:  #2d8a4e;
+
+    /* Status colors */
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --yellow: #d97706;
+    --blue:   #2563eb;
+    --purple: #7c3aed;
+    --orange: #ea580c;
+
+    /* Text — dark for light background */
+    --text:   #1a2e1a;
+    --text2:  #3d5c3d;
+    --text3:  #6b7f6b;
+
+    /* Fonts */
+    --ff:      'Space Grotesk', sans-serif;
+    --fm:      'JetBrains Mono', monospace;
+
+    --radius:    8px;
+    --radius-lg: 12px;
+    --sidebar-w: 230px;
+    --topbar-h:  56px;
+
+    /* Gold glow */
+    --glow:   0 0 24px rgba(245,200,66,0.2);
+    --glow-sm:0 0 12px rgba(245,200,66,0.15);
+    }
+
+    html, body { height: 100%;background: #f0f4f0; color: var(--text); font-family: var(--ff); font-size: 14px; line-height: 1.5; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 10px; }
+
+    /* ── LAYOUT ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ══════════════════════════════════════
+       SIDEBAR
+    ══════════════════════════════════════ */
+    .sidebar {
+      width: var(--sidebar-w);
+      /* background: var(--bg-surface);
+      border-right: 1px solid var(--border); */
+      background: #1a3a2a;
+      border-right: 1px solid rgba(245,200,66,0.2);
+      position: fixed; top: 0; left: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      z-index: 200;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+    }
+
+    .sidebar-brand {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .brand-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--grad); display: flex; align-items: center;
+      justify-content: center; font-size: 18px; flex-shrink: 0;
+      box-shadow: var(--glow-sm);
+    }
+    .brand-name { font-size: 14px; font-weight: 700; color: #ffffff; letter-spacing: 0.2px; }
+    .brand-sub  { font-family: var(--fm); font-size: 9px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; }
+
+    .nav-wrap { flex: 1; overflow-y: auto; padding: 10px 0; }
+    .nav-section { margin-bottom: 4px; }
+    .nav-label {
+      font-family: var(--fm); font-size: 9px; 
+      /* color: var(--text3); */
+      color: rgba(245,200,66,0.6);
+      letter-spacing: 2px; text-transform: uppercase;
+      padding: 10px 16px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px 8px 16px; margin: 1px 8px;
+      /* color: var(--text2);  */
+      color: rgba(255,255,255,0.7);
+      text-decoration: none; font-size: 13px;
+      font-weight: 500; border-radius: var(--radius);
+      border-left: 2px solid transparent;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text); }
+    .nav-item.active {
+      /* background: linear-gradient(90deg, rgba(99,102,241,0.18), rgba(99,102,241,0.05)); */
+      background: linear-gradient(90deg, rgba(245,200,66,0.2), rgba(245,200,66,0.05));
+      color: #f5c842;
+      border-left-color: #f5c842;
+      /* color: var(--accent-lt); border-left-color: var(--accent); */
+    }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--red);
+      color: #fff; font-family: var(--fm); font-size: 9px;
+      padding: 1px 6px; border-radius: 20px; min-width: 18px; text-align: center;
+    }
+
+    .sidebar-user {
+      padding: 12px; border-top: 1px solid var(--border);
+    }
+    .user-pill {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 10px; background: var(--bg-card);
+      border-radius: var(--radius); border: 1px solid var(--border);
+    }
+    .user-ava {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--grad); display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 13px;
+      color: #fff; flex-shrink: 0;
+    }
+    .user-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .user-role { font-size: 10px; color: var(--text3); font-family: var(--fm); }
+
+    /* ══════════════════════════════════════
+       TOPBAR
+    ══════════════════════════════════════ */
+    .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
+    .topbar {
+      height: var(--topbar-h); 
+      /* background: var(--bg-surface);
+      border-bottom: 1px solid var(--border); */
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(10px);
+      background: #ffffff;
+      box-shadow: 0 2px 10px rgba(34,97,50,0.08);
+      border-bottom: 2px solid rgba(34,97,50,0.15);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar-title { font-size: 16px; font-weight: 600; color: var(--text); }
+    .topbar-breadcrumb { font-family: var(--fm); font-size: 11px; color: var(--text3); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-clock { font-family: var(--fm); font-size: 12px; color: var(--text3); }
+
+    .btn-topbar {
+      font-family: var(--fm); font-size: 11px; color: var(--text3);
+      background: transparent; border: 1px solid var(--border);
+      padding: 5px 12px; border-radius: 6px; cursor: pointer;
+      text-decoration: none; transition: all 0.15s;
+    }
+    .btn-topbar:hover { border-color: var(--accent); color: var(--accent-lt); }
+
+    /* ══════════════════════════════════════
+       CONTENT
+    ══════════════════════════════════════ */
+    .content { padding: 20px 24px; flex: 1; }
+
+    /* ── PAGE HEADER ── */
+    .ph { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+    /* .ph-left {} */
+    .ph-title { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
+    .ph-sub { font-family: var(--fm); font-size: 11px; color: var(--text3); margin-top: 3px; }
+    .ph-right { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+
+    /* ── MESSAGES ── */
+    .msgs { margin-bottom: 16px; }
+    .msg {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: var(--radius);
+      font-size: 13px; margin-bottom: 6px; border: 1px solid;
+    }
+    .msg.success { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #6ee7b7; }
+    .msg.error   { background: rgba(239,68,68,0.08);  border-color: rgba(239,68,68,0.25);  color: #fca5a5; }
+    .msg.warning { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); color: #fcd34d; }
+    .msg.info    { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25); color: var(--accent-lt); }
+
+    /* ── CARDS ── */
+    .card {
+      background: #ffffff;
+      border: 1px solid rgba(34,97,50,0.15);
+      padding:20px;
+      box-shadow: 0 2px 12px rgba(34,97,50,0.08);
+    }
+    .card-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .card-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; font-family: var(--fm); }
+
+    /* ── STAT CARDS ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .sc {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 16px 18px;
+      position: relative; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .sc:hover { border-color: var(--border-glow); box-shadow: var(--glow-sm); }
+    .sc-glow::after {
+      content: ''; position: absolute; top: -20px; right: -20px;
+      width: 80px; height: 80px; border-radius: 50%;
+      opacity: 0.07; pointer-events: none;
+    }
+    .sc.green  { border-top: 2px solid var(--green);  } .sc.green  .sc-glow::after { background: var(--green); }
+    .sc.red    { border-top: 2px solid var(--red);    } .sc.red    .sc-glow::after { background: var(--red); }
+    .sc.yellow { border-top: 2px solid var(--yellow); } .sc.yellow .sc-glow::after { background: var(--yellow); }
+    .sc.blue   { border-top: 2px solid var(--blue);   } .sc.blue   .sc-glow::after { background: var(--blue); }
+    .sc.purple { border-top: 2px solid var(--purple); } .sc.purple .sc-glow::after { background: var(--purple); }
+    .sc.indigo { border-top: 2px solid var(--accent);  } .sc.indigo .sc-glow::after { background: var(--accent); }
+    .sc-label { font-family: var(--fm); font-size: 9px; color: var(--text3); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .sc-value { font-size: 30px; font-weight: 700; color: var(--text); line-height: 1; font-family: var(--fm); }
+    .sc-sub   { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+    /* ── TABLES ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: rgba(99,102,241,0.06); color: var(--text3);
+      font-family: var(--fm); font-size: 10px; letter-spacing: 1.5px;
+      text-transform: uppercase; padding: 9px 12px; text-align: left;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid rgba(99,102,241,0.06); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(99,102,241,0.04); }
+    tbody td { padding: 10px 12px; font-size: 13px; vertical-align: middle; }
+    tfoot td { padding: 10px 12px; background: rgba(99,102,241,0.06); border-top: 1px solid var(--border); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 20px;
+      font-family: var(--fm); font-size: 10px; font-weight: 600;
+      white-space: nowrap;
+    }
+    .bg   { background: rgba(16,185,129,0.12); color: #34d399; }
+    .br   { background: rgba(239,68,68,0.12);  color: #f87171; }
+    .by   { background: rgba(245,158,11,0.12); color: #fbbf24; }
+    .bb   { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .bp   { background: rgba(139,92,246,0.12); color: #a78bfa; }
+    .bi   { background: rgba(99,102,241,0.12); color: #818cf8; }
+    .bgr  { background: rgba(71,85,105,0.15);  color: #94a3b8; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px; border-radius: var(--radius); font-size: 13px;
+      font-weight: 600; cursor: pointer; text-decoration: none;
+      border: 1px solid transparent; transition: all 0.15s;
+      white-space: nowrap; font-family: var(--ff);
+    }
+    .btn-primary {
+      background: var(--grad); color: #fff;
+      box-shadow: 0 2px 12px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover { box-shadow: 0 4px 20px rgba(99,102,241,0.5); transform: translateY(-1px); }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn-success:hover { opacity: 0.85; }
+    .btn-danger  { background: var(--red);   color: #fff; }
+    .btn-danger:hover  { opacity: 0.85; }
+    .btn-outline {
+      background: transparent; border-color: var(--border);
+      color: var(--text2);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent-lt); background: rgba(99,102,241,0.05); }
+    .btn-ghost  { background: var(--bg-hover); color: var(--text2); border-color: transparent; }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-xs { padding: 3px 8px;  font-size: 10px; }
+
+    /* ── FORMS ── */
+    .fg { margin-bottom: 14px; }
+    .fl {
+      display: block; font-family: var(--fm); font-size: 10px;
+      color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .fc {
+      width: 100%; background: var(--bg-surface); border: 1px solid var(--border);
+      color: var(--text); padding: 9px 12px; border-radius: var(--radius);
+      font-family: var(--ff); font-size: 13px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .fc:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+    select.fc { cursor: pointer; }
+    textarea.fc { resize: vertical; min-height: 80px; }
+    .fc::placeholder { color: var(--text3); }
+    .fhint { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+    .fr { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+      background: #ffffff;
+      border: 1px solid rgba(34,97,50,0.15);
+      border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 16px;
+    }
+    .filter-bar .fg { margin-bottom: 0; }
+
+    /* ── DIVIDER ── */
+    hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+    /* ── GRID ── */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .ga { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+    /* ── UTILS ── */
+    .mono   { font-family: var(--fm); }
+    .tg     { color: var(--green);  }
+    .tr     { color: var(--red);    }
+    .ty     { color: var(--yellow); }
+    .tb     { color: var(--blue);   }
+    .tp     { color: var(--purple); }
+    .ti     { color: var(--accent-lt); }
+    .tm     { color: var(--text3);  }
+    .fw6    { font-weight: 600; }
+    .fw7    { font-weight: 700; }
+    .mb0    { margin-bottom: 0; }
+    .mb1    { margin-bottom: 8px; }
+    .mb2    { margin-bottom: 16px; }
+    .mb3    { margin-bottom: 24px; }
+    .mt1    { margin-top: 8px; }
+    .mt2    { margin-top: 16px; }
+    .flex   { display: flex; }
+    .gap1   { gap: 6px; }
+    .gap2   { gap: 10px; }
+    .gap3   { gap: 16px; }
+    .ac     { align-items: center; }
+    .jb     { justify-content: space-between; }
+    .wrap   { flex-wrap: wrap; }
+    .ta-c   { text-align: center; }
+
+    {% block extra_style %}{% endblock %}
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <!-- <div class="brand-icon">🛏️</div> -->
+       <img src="{% static 'app/NWIPLogo.jpeg' %}" style="width:34px;height:34px;border-radius:8px;object-fit:cover;">
+      <div>
+        <div class="brand-name">NWI Attendance</div>
+        <div class="brand-sub">Neminath Wood Industry Pvt.Ltd</div>
+      </div>
+    </div>
+
+    <nav class="nav-wrap">
+      <div class="nav-section">
+        <div class="nav-label">Main</div>
+        <a href="{% url 'app:dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+          <span class="nav-icon">⬛</span> Dashboard
+        </a>
+        <a href="{% url 'app:daily_attendance' %}" class="nav-item {% if request.resolver_match.url_name == 'daily_attendance' %}active{% endif %}">
+          <span class="nav-icon">📋</span> Daily Attendance
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Employees</div>
+        <a href="{% url 'app:employee_list' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_list' %}active{% endif %}">
+          <span class="nav-icon">👥</span> All Employees
+        </a>
+        <a href="{% url 'app:employee_add' %}" class="nav-item {% if request.resolver_match.url_name == 'employee_add' %}active{% endif %}">
+          <span class="nav-icon">➕</span> Add Employee
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Permissions</div>
+        <a href="{% url 'app:permission_list' %}" class="nav-item {% if request.resolver_match.url_name == 'permission_list' %}active{% endif %}">
+          <span class="nav-icon">🔔</span> Permission Log
+          {% if pending_perms %}<span class="nav-badge">{{ pending_perms }}</span>{% endif %}
+        </a>
+        <a href="{% url 'app:permission_add' %}" class="nav-item {% if request.resolver_match.url_name == 'permission_add' %}active{% endif %}">
+          <span class="nav-icon">✚</span> Add Permission
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Reports</div>
+        <a href="{% url 'app:monthly_report' %}" class="nav-item {% if request.resolver_match.url_name == 'monthly_report' %}active{% endif %}">
+          <span class="nav-icon">📊</span> Monthly Report
+        </a>
+        <a href="{% url 'app:ot_list' %}"
+          class="nav-item {% if request.resolver_match.url_name == 'ot_list' %}active{% endif %}">
+          <span class="nav-icon">⏰</span> Overtime
+        </a>
+        <!-- <a href="{% url 'app:export_csv' %}" class="nav-item">
+          <span class="nav-icon">⬇</span> Export CSV
+        </a>
+        <a href="{% url 'app:export_excel' %}?year={{ year }}&month={{ month }}"
+          class="btn btn-success">
+          📊 Export Excel
+        </a> -->
+      </div>
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-pill">
+        <div class="user-ava">{{ request.user.username|first|upper }}</div>
+        <div>
+          <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="user-role">{% if request.user.is_staff %}Admin{% else %}Staff{% endif %}</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-title">{% block page_title %}Dashboard{% endblock %}</span>
+        <span class="topbar-breadcrumb">{% block breadcrumb %}{% endblock %}</span>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-clock" id="tclock"></span>
+        <a href="/admin/" class="btn-topbar">Django Admin</a>
+        <form method="post" action="{% url 'logout' %}" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="btn-topbar">Logout</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="content">
+      {% if messages %}
+      <div class="msgs">
+        {% for m in messages %}
+        <div class="msg {{ m.tags }}">
+          {% if 'success' in m.tags %}✓{% elif 'error' in m.tags %}✕{% elif 'warning' in m.tags %}⚠{% else %}ℹ{% endif %}
+          {{ m }}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Live clock
+  (function tick() {
+    const n = new Date(), p = x => String(x).padStart(2,'0');
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const el = document.getElementById('tclock');
+    if (el) el.textContent = days[n.getDay()] + '  ' + p(n.getDate()) + '/' + p(n.getMonth()+1) + '/' + n.getFullYear() + '  ' + p(n.getHours()) + ':' + p(n.getMinutes()) + ':' + p(n.getSeconds());
+    setTimeout(tick, 1000);
+  })();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

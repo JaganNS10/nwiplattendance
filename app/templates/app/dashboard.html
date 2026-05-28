@@ -1,0 +1,200 @@
+{% extends "app/base.html" %}
+{% block title %}Dashboard — NWI{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Good {% now "G" as h %}{% if h|add:"0" < 12 %}Morning{% elif h|add:"0" < 17 %}Afternoon{% else %}Evening{% endif %}, {{ request.user.get_full_name|default:request.user.username }} 👋</div>
+    <div class="ph-sub">{{ summary.today|date:"l, d F Y" }} &nbsp;·&nbsp; {% if summary.is_working %}Working Day{% else %}Non-Working Day{% endif %}</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:daily_attendance' %}" class="btn btn-primary">📋 Daily Attendance</a>
+    <a href="{% url 'app:monthly_report' %}" class="btn btn-outline">📊 Monthly Report</a>
+  </div>
+</div>
+
+<!-- STAT CARDS -->
+<div class="stat-grid">
+  <div class="sc indigo sc-glow">
+    <div class="sc-label">Total Active</div>
+    <div class="sc-value">{{ summary.total_active }}</div>
+    <div class="sc-sub">registered employees</div>
+  </div>
+  <div class="sc green sc-glow">
+    <div class="sc-label">Present Today</div>
+    <div class="sc-value">{{ summary.present }}</div>
+    <div class="sc-sub">checked in</div>
+  </div>
+  <div class="sc red sc-glow">
+    <div class="sc-label">Absent Today</div>
+    <div class="sc-value">{{ summary.absent }}</div>
+    <div class="sc-sub">not present</div>
+  </div>
+  <div class="sc yellow sc-glow">
+    <div class="sc-label">Late Today</div>
+    <div class="sc-value">{{ summary.late }}</div>
+    <div class="sc-sub">after 9:00 AM</div>
+  </div>
+  <div class="sc blue sc-glow">
+    <div class="sc-label">Paid Leave</div>
+    <div class="sc-value">{{ summary.paid_leave }}</div>
+    <div class="sc-sub">on leave today</div>
+  </div>
+  <div class="sc purple sc-glow">
+    <div class="sc-label">Not Marked</div>
+    <div class="sc-value">{{ summary.not_marked }}</div>
+    <div class="sc-sub"><a href="{% url 'app:daily_attendance' %}" style="color:var(--purple);">mark now →</a></div>
+  </div>
+</div>
+
+<!-- 7-DAY TREND + TODAY TABLE -->
+<div class="ga mb2">
+
+  <!-- Left: trend chart + today records -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- 7-Day Bar Chart -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">7-Day Presence Trend</span>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:8px;height:90px;padding:0 4px;">
+        {% for d in bar_data %}
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <span style="font-family:var(--fm);font-size:10px;color:var(--text3);">{{ d.count }}</span>
+          <div style="
+            width:100%;border-radius:4px 4px 0 0;
+            background:{% if d.is_working %}linear-gradient(180deg,#6366f1,#8b5cf6){% else %}rgba(99,102,241,0.15){% endif %};
+            height:{% if summary.total_active > 0 and d.is_working %}{% widthratio d.count summary.total_active 70 %}px{% else %}4px{% endif %};
+            min-height:4px;
+            box-shadow:{% if d.is_working %}0 0 8px rgba(99,102,241,0.4){% else %}none{% endif %};
+          "></div>
+          <span style="font-family:var(--fm);font-size:9px;color:var(--text3);">{{ d.day }}</span>
+          <span style="font-family:var(--fm);font-size:8px;color:var(--text3);">{{ d.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Today's attendance snapshot -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">Today's Records</span>
+        <a href="{% url 'app:daily_attendance' %}" class="btn btn-outline btn-sm">Edit →</a>
+      </div>
+      {% if today_records %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Name</th><th>In</th><th>Status</th><th>Late</th></tr>
+          </thead>
+          <tbody>
+            {% for rec in today_records %}
+            <tr>
+              <td class="mono tm" style="font-size:11px;">{{ forloop.counter }}</td>
+              <td>
+                <div class="fw6">{{ rec.employee.name }}</div>
+                <div class="mono tm" style="font-size:10px;">{{ rec.employee.employee_id }}</div>
+              </td>
+              <td class="mono" style="font-size:12px;">{{ rec.in_time|time:"H:i"|default:"—" }}</td>
+              <td>
+                {% if rec.status == 'present'    %}<span class="badge bg">● Present</span>
+                {% elif rec.status == 'absent'   %}<span class="badge br">● Absent</span>
+                {% elif rec.status == 'paid_leave'%}<span class="badge bb">● P.Leave</span>
+                {% elif rec.status == 'holiday'  %}<span class="badge bp">● Holiday</span>
+                {% else %}<span class="badge bgr">{{ rec.get_status_display }}</span>{% endif %}
+              </td>
+              <td class="mono {% if rec.late_minutes > 0 %}ty{% else %}tm{% endif %}" style="font-size:12px;">
+                {% if rec.late_minutes > 0 %}+{{ rec.late_minutes }}m{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:30px;color:var(--text3);">
+        <div style="font-size:28px;margin-bottom:6px;">📋</div>
+        <div>No attendance marked today yet.</div>
+        <a href="{% url 'app:daily_attendance' %}" class="btn btn-primary mt1" style="margin-top:10px;">Mark Attendance</a>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Right: quick actions + pending permissions -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Quick Actions</span></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="{% url 'app:daily_attendance' %}" class="btn btn-primary" style="justify-content:center;">
+          📋 Mark Today's Attendance
+        </a>
+        <a href="{% url 'app:permission_add' %}" class="btn btn-ghost" style="justify-content:center;">
+          ➕ Add Permission
+        </a>
+        <a href="{% url 'app:monthly_report' %}" class="btn btn-ghost" style="justify-content:center;">
+          📊 View Monthly Report
+        </a>
+        <a href="{% url 'app:employee_add' %}" class="btn btn-ghost" style="justify-content:center;">
+          👤 Add Employee
+        </a>
+        <a href="{% url 'app:export_csv' %}" class="btn btn-ghost" style="justify-content:center;">
+          ⬇ Export This Month CSV
+        </a>
+      </div>
+    </div>
+
+    <!-- This month permissions -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">This Month Permissions</span>
+        <a href="{% url 'app:permission_list' %}" class="btn btn-outline btn-sm">View All</a>
+      </div>
+      <div style="text-align:center;padding:12px 0;">
+        <div style="font-family:var(--fm);font-size:36px;font-weight:700;
+          background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+          {{ pending_perms }}
+        </div>
+        <div style="font-family:var(--fm);font-size:11px;color:var(--text3);margin-top:4px;">
+          permission entries this month
+        </div>
+        <a href="{% url 'app:permission_list' %}" class="btn btn-outline btn-sm mt1" style="margin-top:10px;">Manage →</a>
+      </div>
+    </div>
+
+    <!-- Policy Reminder -->
+    <div class="card" style="border-color:rgba(99,102,241,0.3);">
+      <div class="card-hd"><span class="card-title">Policy Summary</span></div>
+      <div style="font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:8px;">
+        <div class="flex ac jb">
+          <span class="tm">In Grace Period</span>
+          <span class="mono ti">8:50 – 9:00 AM</span>
+        </div>
+        <div class="flex ac jb">
+          <span class="tm">Out Grace Period</span>
+          <span class="mono ti">6:50 – 7:00 PM</span>
+        </div>
+        <div class="flex ac jb">
+          <span class="tm">Monthly Buffer</span>
+          <span class="mono ti">120 min / month</span>
+        </div>
+        <div class="flex ac jb">
+          <span class="tm">Paid Leave</span>
+          <span class="mono ti">1 day / month</span>
+        </div>
+        <div class="flex ac jb">
+          <span class="tm">Off Days</span>
+          <span class="mono ti">Sun + 2nd/4th Sat</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

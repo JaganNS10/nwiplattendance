@@ -1,0 +1,106 @@
+{% extends "app/base.html" %}
+{% block title %}Edit {{ employee.name }} — NWI{% endblock %}
+{% block page_title %}Edit Employee{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ph-title">Edit Employee</div>
+      <div class="ph-sub">{{ employee.employee_id }} · {{ employee.name }}</div>
+    </div>
+    <div class="ph-right">
+      <a href="{% url 'app:employee_detail' employee.employee_id %}" class="btn btn-outline">View Profile</a>
+      <a href="{% url 'app:employee_list' %}" class="btn btn-outline">← Back</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="card-hd"><span class="card-title">Personal Info</span></div>
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Employee ID</label>
+          <input type="text" class="fc" value="{{ employee.employee_id }}" disabled style="opacity:0.5;cursor:not-allowed;">
+          <div class="fhint">Employee ID cannot be changed.</div>
+        </div>
+        <div class="fg">
+          <label class="fl">Full Name *</label>
+          <input type="text" name="name" class="fc" value="{{ employee.name }}" required>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Gender</label>
+          <select name="gender" class="fc">
+            <option value="M" {% if employee.gender == 'M' %}selected{% endif %}>Male</option>
+            <option value="F" {% if employee.gender == 'F' %}selected{% endif %}>Female</option>
+            <option value="O" {% if employee.gender == 'O' %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Status</label>
+          <select name="status" class="fc">
+            <option value="active"   {% if employee.status == 'active'   %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if employee.status == 'inactive' %}selected{% endif %}>Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Phone</label>
+          <input type="tel" name="phone" class="fc" value="{{ employee.phone }}">
+        </div>
+        <div class="fg">
+          <label class="fl">Email</label>
+          <input type="email" name="email" class="fc" value="{{ employee.email }}">
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Address</label>
+        <textarea name="address" class="fc" rows="2">{{ employee.address }}</textarea>
+      </div>
+
+      <hr class="div">
+      <div class="card-hd" style="border-bottom:none;padding-bottom:0;"><span class="card-title">Job Details</span></div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Department</label>
+          <select name="department" class="fc">
+            <option value="">— None —</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}" {% if employee.department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Designation *</label>
+          <input type="text" name="designation" class="fc" value="{{ employee.designation }}" required>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Date Joined *</label>
+          <input type="date" name="date_joined" class="fc" value="{{ employee.date_joined|date:'Y-m-d' }}" required>
+        </div>
+        <div class="fg">
+          <label class="fl">Monthly Salary (₹) *</label>
+          <input type="number" name="monthly_salary" class="fc" step="0.01" value="{{ employee.monthly_salary }}" required>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">✓ Save Changes</button>
+        <a href="{% url 'app:employee_list' %}" class="btn btn-outline" style="flex:1;justify-content:center;">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

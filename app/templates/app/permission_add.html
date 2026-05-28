@@ -1,0 +1,183 @@
+{% extends "app/base.html" %}
+{% block title %}Add Permission — NWI{% endblock %}
+{% block page_title %}Add Permission{% endblock %}
+
+{% block extra_style %}
+.budget-bar-wrap { background: var(--bg-surface); border-radius: 20px; height: 10px; overflow: hidden; margin: 8px 0; }
+.budget-bar      { height: 100%; border-radius: 20px; transition: width 0.4s, background 0.3s; }
+.warning-box {
+  background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #fbbf24;
+  display: none; margin-top: 10px;
+}
+.exceeded-box {
+  background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #f87171;
+  display: none; margin-top: 10px;
+}
+{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Add Permission Entry</div>
+    <div class="ph-sub">Admin-added permission — counts toward 2-hour monthly buffer</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:permission_list' %}" class="btn btn-outline">← Back</a>
+  </div>
+</div>
+
+<div style="max-width:560px;display:grid;grid-template-columns:1fr;gap:14px;">
+
+  <!-- Budget Preview Card (dynamic) -->
+  <div class="card" id="budget-card">
+    <div class="card-hd"><span class="card-title">Monthly Permission Budget</span></div>
+    <div id="budget-display" style="color:var(--text3);font-size:13px;text-align:center;padding:12px;">
+      ← Select an employee to see their budget
+    </div>
+    <div id="budget-detail" style="display:none;">
+      <div class="flex jb ac" style="font-size:13px;margin-bottom:8px;">
+        <span class="tm">Used this month</span>
+        <span class="mono fw6" id="bd-used">—</span>
+      </div>
+      <div class="budget-bar-wrap">
+        <div class="budget-bar" id="bd-bar" style="width:0%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div>
+      </div>
+      <div class="flex jb" style="font-size:11px;color:var(--text3);margin-top:4px;">
+        <span id="bd-left"></span>
+        <span>Limit: 120 min</span>
+      </div>
+      <div class="warning-box" id="warn-box">⚠ Adding this permission will bring total close to or past the 2-hour limit. Excess will be auto-debited from salary.</div>
+      <div class="exceeded-box" id="exc-box">🔴 This employee has already exceeded the monthly 2-hour buffer. All permitted minutes will be debited from salary.</div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="card">
+    <div class="card-hd"><span class="card-title">New Permission Entry</span></div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="fg">
+        <label class="fl">Employee *</label>
+        <select name="employee" id="emp-sel" class="fc" required onchange="loadBudget(this.value)">
+          <option value="">— Select Employee —</option>
+          {% for emp in employees %}
+          <option value="{{ emp.id }}" data-empid="{{ emp.employee_id }}">{{ emp.employee_id }} — {{ emp.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Date *</label>
+          <input type="date" name="date" class="fc" value="{{ today|date:'Y-m-d' }}" required
+                 onchange="loadBudget(document.getElementById('emp-sel').value, this.value)">
+        </div>
+        <div class="fg">
+          <label class="fl">Minutes Permitted *</label>
+          <input type="number" name="requested_minutes" id="mins-input" class="fc"
+                 min="1" max="480" placeholder="e.g. 30" required
+                 oninput="updateWarning(this.value)">
+          <div class="fhint" id="remaining-hint">Select employee to see remaining budget</div>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Status</label>
+          <select name="status" class="fc">
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Reason</label>
+        <textarea name="reason" class="fc" rows="3" placeholder="Brief reason (personal work, medical, etc.)"></textarea>
+      </div>
+
+      <div style="background:rgba(99,102,241,0.06);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--text2);">
+        <div class="mono" style="color:var(--accent-lt);margin-bottom:6px;">ℹ Policy</div>
+        First <strong>120 min/month</strong> (late + early exit + permissions combined) are free.
+        Excess is deducted: <em>(Excess ÷ Monthly Work Minutes) × Monthly Salary</em>.
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">✓ Save Permission</button>
+        <a href="{% url 'app:permission_list' %}" class="btn btn-outline" style="flex:1;justify-content:center;">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentUsed = 0;
+  const LIMIT = 120;
+
+  function loadBudget(empPk, dateStr) {
+    if (!empPk) return;
+    const sel  = document.getElementById('emp-sel');
+    const opt  = sel.querySelector(`option[value="${empPk}"]`);
+    const empId = opt ? opt.dataset.empid : null;
+    if (!empId) return;
+
+    const d = dateStr || document.querySelector('[name="date"]').value;
+    const [year, month] = d ? d.split('-') : [new Date().getFullYear(), new Date().getMonth()+1];
+
+    fetch(`/api/salary/${empId}/?year=${year}&month=${month}`)
+      .then(r => r.json())
+      .then(data => {
+        const permMins = data.total_permission_minutes || 0;
+        const lateMins = data.total_late_minutes || 0;
+        const earlyMins= data.total_early_exit_minutes || 0;
+        currentUsed = permMins + lateMins + earlyMins;
+
+        const pct = Math.min((currentUsed / LIMIT) * 100, 100);
+        document.getElementById('bd-used').textContent    = currentUsed + ' / ' + LIMIT + ' min';
+        document.getElementById('bd-left').textContent    = 'Remaining: ' + Math.max(LIMIT - currentUsed, 0) + ' min';
+        document.getElementById('bd-bar').style.width     = pct + '%';
+        document.getElementById('bd-bar').style.background =
+          currentUsed >= LIMIT ? 'var(--red)' :
+          currentUsed >= 90   ? 'var(--yellow)' :
+          'linear-gradient(90deg,#6366f1,#8b5cf6)';
+
+        document.getElementById('budget-display').style.display = 'none';
+        document.getElementById('budget-detail').style.display  = 'block';
+        document.getElementById('remaining-hint').textContent   = Math.max(LIMIT - currentUsed, 0) + ' min remaining';
+
+        if (currentUsed >= LIMIT) {
+          document.getElementById('exc-box').style.display = 'block';
+          document.getElementById('warn-box').style.display= 'none';
+        } else {
+          document.getElementById('exc-box').style.display = 'none';
+        }
+        updateWarning(document.getElementById('mins-input').value);
+      })
+      .catch(() => {});
+  }
+
+  function updateWarning(minsVal) {
+    const mins = parseInt(minsVal) || 0;
+    const newTotal = currentUsed + mins;
+    const warnBox  = document.getElementById('warn-box');
+    const excBox   = document.getElementById('exc-box');
+    if (currentUsed >= LIMIT) {
+      excBox.style.display  = 'block';
+      warnBox.style.display = 'none';
+    } else if (newTotal > LIMIT) {
+      warnBox.style.display = 'block';
+      excBox.style.display  = 'none';
+    } else {
+      warnBox.style.display = 'none';
+      excBox.style.display  = 'none';
+    }
+  }
+</script>
+{% endblock %}

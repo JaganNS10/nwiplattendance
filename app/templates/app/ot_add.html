@@ -1,0 +1,213 @@
+{% extends "app/base.html" %}
+{% block title %}Add OT — NWI{% endblock %}
+{% block page_title %}Add Overtime{% endblock %}
+
+{% block content %}
+<div style="max-width:580px;">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ph-title">Add Overtime Entry</div>
+      <div class="ph-sub">OT amount auto-calculated from employee salary</div>
+    </div>
+    <a href="{% url 'app:ot_list' %}" class="btn btn-outline">← Back</a>
+  </div>
+
+  <!-- Per Day Salary Reference Card -->
+  <div class="card mb2">
+    <div class="card-hd"><span class="card-title">Per Day Salary Reference</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>ID</th>
+            <th>Monthly Salary</th>
+            <th>Per Day</th>
+            <th>Per Hour</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for emp in employees %}
+          <tr>
+            <td class="fw6">{{ emp.name }}</td>
+            <td class="mono ti" style="font-size:12px;">{{ emp.employee_id }}</td>
+            <td class="mono">&#8377;{{ emp.monthly_salary }}</td>
+            <td>
+              <!-- PER DAY HINT BADGE -->
+              <span style="
+                background:rgba(245,200,66,0.12);
+                color:#d97706;
+                font-family:var(--fm);
+                font-size:11px;
+                font-weight:600;
+                padding:3px 10px;
+                border-radius:20px;
+                border:1px solid rgba(245,200,66,0.3);
+              ">
+                &#8377;{{ emp.per_day }}/day
+              </span>
+            </td>
+            <td>
+              <span style="
+                background:rgba(99,102,241,0.1);
+                color:var(--accent-lt);
+                font-family:var(--fm);
+                font-size:11px;
+                padding:3px 10px;
+                border-radius:20px;
+                border:1px solid rgba(99,102,241,0.2);
+              ">
+                <!-- &#8377;{{ emp.per_day|floatformat:2 }}/8h -->
+                 &#8377;{{ emp.per_hour }}/hr
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- OT Form -->
+  <div class="card">
+    <div class="card-hd"><span class="card-title">New OT Entry</span></div>
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="fg">
+        <label class="fl">Employee *</label>
+        <select name="employee" id="emp-sel" class="fc" required>
+          <option value="">-- Select Employee --</option>
+          {% for emp in employees %}
+          <option value="{{ emp.id }}"
+                  data-perday="{{ emp.per_day }}"
+                  data-salary="{{ emp.monthly_salary }}">
+            {{ emp.employee_id }} -- {{ emp.name }}
+            (&#8377;{{ emp.per_day }}/day)
+            
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Live OT Preview -->
+      <div id="ot-preview" style="
+        display:none;
+        background:rgba(245,200,66,0.08);
+        border:1px solid rgba(245,200,66,0.25);
+        border-radius:8px;padding:12px 14px;
+        margin-bottom:14px;font-size:13px;
+      ">
+        <div style="font-family:var(--fm);font-size:10px;color:#d97706;
+             text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">
+          OT Preview
+        </div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:10px;color:var(--text3);">Per Day</div>
+            <div class="mono fw6" id="prev-perday" style="color:#d97706;">--</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text3);">Per Hour</div>
+            <div class="mono fw6" id="prev-perhour" style="color:var(--accent-lt);">--</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text3);">Est. OT Amount</div>
+            <div class="mono fw6" id="prev-ot" style="color:var(--green);font-size:16px;">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Date *</label>
+          <input type="date" name="date" class="fc"
+                 value="{{ today|date:'Y-m-d' }}" required>
+        </div>
+        <div class="fg">
+          <label class="fl">OT Type *</label>
+          <select name="ot_type" id="ot-type" class="fc" required
+                  onchange="updatePreview()">
+            <option value="">-- Select --</option>
+            <option value="full_day">Full Day</option>
+            <option value="hours">Hours</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- OT Hours (shown only if type = hours) -->
+      <div class="fg" id="hours-field" style="display:none;">
+        <label class="fl">OT Hours *</label>
+        <input type="number" name="ot_hours" id="ot-hours"
+               class="fc" min="0.5" max="12" step="0.5"
+               placeholder="e.g. 2.5"
+               oninput="updatePreview()">
+        <div class="fhint">Enter hours worked as OT (e.g. 2, 2.5, 3)</div>
+      </div>
+
+      <!-- Admin Override -->
+      <div class="fg">
+        <label class="fl">Override OT Amount (&#8377;)</label>
+        <input type="number" name="admin_ot_override" class="fc"
+               step="0.01" min="0" placeholder="Leave blank to use auto amount">
+        <div class="fhint">Optional — leave blank to use auto-calculated amount</div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">Reason / Note</label>
+        <textarea name="override_reason" class="fc" rows="2"
+                  placeholder="e.g. Sunday work, urgent delivery, extra shift..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary"
+                style="flex:1;justify-content:center;">
+          &#10003; Save OT Entry
+        </button>
+        <a href="{% url 'app:ot_list' %}" class="btn btn-outline"
+           style="flex:1;justify-content:center;">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function updatePreview() {
+    const sel     = document.getElementById('emp-sel');
+    const opt     = sel.options[sel.selectedIndex];
+    const perDay  = parseFloat(opt.dataset.perday) || 0;
+    const otType  = document.getElementById('ot-type').value;
+    const hoursEl = document.getElementById('ot-hours');
+    const hoursField = document.getElementById('hours-field');
+
+    // Show/hide hours field
+    if (otType === 'hours') {
+      hoursField.style.display = 'block';
+    } else {
+      hoursField.style.display = 'none';
+    }
+
+    if (!perDay || !otType) return;
+
+    const perHour = perDay / 8;
+    let otAmount  = 0;
+
+    if (otType === 'full_day') {
+      otAmount = perDay;
+    } else if (otType === 'hours') {
+      const hrs = parseFloat(hoursEl.value) || 0;
+      otAmount  = perHour * hrs;
+    }
+
+    document.getElementById('ot-preview').style.display = 'block';
+    document.getElementById('prev-perday').textContent  = '₹' + perDay.toFixed(2);
+    document.getElementById('prev-perhour').textContent = '₹' + perHour.toFixed(2);
+    document.getElementById('prev-ot').textContent      = '₹' + otAmount.toFixed(2);
+  }
+
+  // Also trigger on employee change
+  document.getElementById('emp-sel').addEventListener('change', updatePreview);
+</script>
+{% endblock %}

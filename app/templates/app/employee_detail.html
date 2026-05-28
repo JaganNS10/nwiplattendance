@@ -1,0 +1,247 @@
+{% extends "app/base.html" %}
+{% block title %}{{ employee.name }} — NWI{% endblock %}
+{% block page_title %}Employee Detail{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="flex ac gap2">
+      <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+        display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:#fff;">
+        {{ employee.name|first }}
+      </div>
+      <div>
+        <div class="ph-title">{{ employee.name }}</div>
+        <div class="ph-sub">{{ employee.employee_id }} · {{ employee.designation }} · {{ employee.department.name|default:"No Dept" }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:employee_edit' employee.employee_id %}" class="btn btn-outline">Edit</a>
+    <a href="{% url 'app:employee_list' %}" class="btn btn-outline">← Back</a>
+  </div>
+</div>
+
+<!-- Month selector -->
+<form method="get" class="filter-bar mb2">
+  <div class="fg mb0">
+    <label class="fl">Year</label>
+    <select name="year" class="fc" style="width:110px;" onchange="this.form.submit()">
+      {% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="fg mb0">
+    <label class="fl">Month</label>
+    <select name="month" class="fc" style="width:150px;" onchange="this.form.submit()">
+      {% for m_num, m_name in months %}<option value="{{ m_num }}" {% if m_num == month %}selected{% endif %}>{{ m_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="padding-top:18px;">
+    <button type="submit" class="btn btn-primary btn-sm">View</button>
+  </div>
+  <div style="padding-top:18px;margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--text3);">
+    Viewing: {{ month_name }} {{ year }}
+  </div>
+</form>
+
+<div class="g2" style="align-items:start;">
+
+  <!-- LEFT -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Profile card -->
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Profile</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+        <div>
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Status</div>
+          {% if employee.status == 'active' %}<span class="badge bg">Active</span>{% else %}<span class="badge bgr">Inactive</span>{% endif %}
+        </div>
+        <div>
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Gender</div>
+          <div>{{ employee.get_gender_display }}</div>
+        </div>
+        <div>
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Phone</div>
+          <div class="mono">{{ employee.phone|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Email</div>
+          <div style="font-size:12px;">{{ employee.email|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Date Joined</div>
+          <div class="mono">{{ employee.date_joined|date:"d M Y" }}</div>
+        </div>
+        <div>
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Department</div>
+          <div>{{ employee.department.name|default:"—" }}</div>
+        </div>
+        <div style="grid-column:1/-1;">
+          <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:3px;">Monthly Salary</div>
+          <div style="font-size:24px;font-weight:700;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;">₹{{ employee.monthly_salary }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Salary breakdown for selected month -->
+    {% if monthly_data %}
+    <div class="card">
+      <div class="card-hd"><span class="card-title">{{ month_name }} {{ year }} — Salary</span></div>
+
+      <!-- Day stats -->
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+        <div class="sc green">
+          <div class="sc-label">Present</div>
+          <div class="sc-value" style="font-size:22px;">{{ monthly_data.present_days }}</div>
+          <div class="sc-sub">/ {{ monthly_data.total_working_days }} days</div>
+        </div>
+        <div class="sc red">
+          <div class="sc-label">Absent</div>
+          <div class="sc-value" style="font-size:22px;">{{ monthly_data.absent_days }}</div>
+        </div>
+        <div class="sc blue">
+          <div class="sc-label">Paid Leave</div>
+          <div class="sc-value" style="font-size:22px;">{{ monthly_data.paid_leave_days }}</div>
+        </div>
+      </div>
+
+      <!-- Salary breakdown -->
+      <div style="display:flex;flex-direction:column;gap:0;">
+        {% for label, val, cls in salary_rows %}
+        {% empty %}
+        {% endfor %}
+        <div class="flex jb" style="padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span class="tm">Gross Salary</span>
+          <span class="mono">₹{{ monthly_data.monthly_salary }}</span>
+        </div>
+        <div class="flex jb" style="padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span class="tm">Absent Deduction ({{ monthly_data.absent_days }} days)</span>
+          <span class="mono tr">- ₹{{ monthly_data.absent_deduction }}</span>
+        </div>
+        <div class="flex jb" style="padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span class="tm">Auto Debit ({{ monthly_data.excess_minutes }} excess min)</span>
+          <span class="mono ty">- ₹{{ monthly_data.auto_debit_amount }}</span>
+        </div>
+        <div class="flex jb ac" style="padding:12px;background:rgba(99,102,241,0.08);border-radius:8px;margin-top:10px;">
+          <span style="font-weight:600;font-size:14px;">Est. Net Salary</span>
+          <span style="font-size:24px;font-weight:700;color:var(--green);">
+            ₹{{ net_salary }}</span>
+        </div>
+      </div>
+
+      <!-- Deviation detail -->
+      <hr class="div">
+      <div class="mono tm" style="font-size:10px;text-transform:uppercase;margin-bottom:10px;letter-spacing:1px;">Deviation Pool</div>
+      <div style="font-size:12px;display:flex;flex-direction:column;gap:6px;">
+        <div class="flex jb"><span class="tm">Late arrivals</span> <span class="mono">{{ monthly_data.total_late_minutes }} min</span></div>
+        <div class="flex jb"><span class="tm">Early exits</span>   <span class="mono">{{ monthly_data.total_early_exit_minutes }} min</span></div>
+        <div class="flex jb"><span class="tm">Permissions</span>   <span class="mono">{{ monthly_data.total_permission_minutes }} min</span></div>
+        <div class="flex jb" style="border-top:1px solid var(--border);padding-top:6px;">
+          <span>Total Pool</span>
+          <span class="mono {% if monthly_data.total_deviation_minutes > 120 %}tr{% else %}tg{% endif %}">
+            {{ monthly_data.total_deviation_minutes }} / 120 min
+          </span>
+        </div>
+        {% if monthly_data.excess_minutes > 0 %}
+        <div class="flex jb"><span class="tr">Excess</span><span class="mono tr">{{ monthly_data.excess_minutes }} min</span></div>
+        {% endif %}
+      </div>
+
+      <!-- Buffer progress bar -->
+      <div style="background:var(--bg-surface);border-radius:20px;height:8px;overflow:hidden;margin-top:10px;">
+        <div style="height:100%;
+          width:{% if monthly_data.total_deviation_minutes >= 120 %}100{% else %}{% widthratio monthly_data.total_deviation_minutes 120 100 %}{% endif %}%;
+          background:{% if monthly_data.excess_minutes > 0 %}var(--red){% else %}linear-gradient(90deg,#6366f1,#8b5cf6){% endif %};
+          border-radius:20px;transition:width 0.5s;"></div>
+      </div>
+
+      <!-- Permission budget -->
+      <hr class="div">
+      <div class="flex jb ac" style="font-size:12px;">
+        <span class="tm">Permission Budget</span>
+        <span class="mono {% if budget.exceeded %}tr{% else %}tg{% endif %}">{{ budget.used }}/{{ budget.limit }} min used</span>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- RIGHT -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+
+    <!-- Monthly Attendance Table -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">{{ month_name }} {{ year }} — Daily Records</span>
+      </div>
+      {% if records %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Day</th><th>Status</th><th>In</th><th>Out</th><th>Late</th><th>Early</th></tr>
+          </thead>
+          <tbody>
+            {% for rec in records %}
+            <tr>
+              <td class="mono" style="font-size:12px;">{{ rec.date|date:"d" }}</td>
+              <td style="font-size:11px;color:var(--text3);">{{ rec.date|date:"D" }}</td>
+              <td>
+                {% if rec.status == 'present'    %}<span class="badge bg">P</span>
+                {% elif rec.status == 'absent'   %}<span class="badge br">A</span>
+                {% elif rec.status == 'paid_leave'%}<span class="badge bb">PL</span>
+                {% elif rec.status == 'holiday'  %}<span class="badge bp">H</span>
+                {% else %}<span class="badge bgr">—</span>{% endif %}
+              </td>
+              <td class="mono" style="font-size:12px;">{{ rec.in_time|time:"H:i"|default:"—" }}</td>
+              <td class="mono" style="font-size:12px;">{{ rec.out_time|time:"H:i"|default:"—" }}</td>
+              <td class="mono {% if rec.late_minutes > 0 %}ty{% else %}tm{% endif %}" style="font-size:11px;">
+                {% if rec.late_minutes > 0 %}+{{ rec.late_minutes }}m{% else %}—{% endif %}
+              </td>
+              <td class="mono {% if rec.early_exit_minutes > 0 %}ty{% else %}tm{% endif %}" style="font-size:11px;">
+                {% if rec.early_exit_minutes > 0 %}-{{ rec.early_exit_minutes }}m{% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:24px;color:var(--text3);">No records for {{ month_name }} {{ year }}.</div>
+      {% endif %}
+    </div>
+
+    <!-- Permission history -->
+    <div class="card">
+      <div class="card-hd">
+        <span class="card-title">Permissions — {{ month_name }} {{ year }}</span>
+        <a href="{% url 'app:permission_add' %}" class="btn btn-outline btn-sm">+ Add</a>
+      </div>
+      {% if permissions %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Date</th><th>Minutes</th><th>Reason</th><th>Status</th></tr></thead>
+          <tbody>
+            {% for p in permissions %}
+            <tr>
+              <td class="mono" style="font-size:12px;">{{ p.date|date:"d M" }}</td>
+              <td class="mono fw6" style="font-size:13px;">{{ p.requested_minutes }}m</td>
+              <td style="font-size:12px;color:var(--text2);">{{ p.reason|truncatechars:40|default:"—" }}</td>
+              <td>
+                {% if p.status == 'approved' %}<span class="badge bg">Approved</span>
+                {% else %}<span class="badge br">Rejected</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:20px;color:var(--text3);">No permissions this month.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

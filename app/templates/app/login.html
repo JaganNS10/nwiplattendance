@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login — NWI Attendance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:     #070b14;
+      --surf:   #0d1424;
+      --card:   #111827;
+      --border: rgba(99,130,255,0.14);
+      --accent: #6366f1;
+      --alt:    #8b5cf6;
+      --text:   #e2e8f0;
+      --text2:  #94a3b8;
+      --text3:  #475569;
+      --green:  #10b981;
+      --red:    #ef4444;
+      --ff:     'Space Grotesk', sans-serif;
+      --fm:     'JetBrains Mono', monospace;
+    }
+    html, body { height: 100%; background: var(--bg); font-family: var(--ff); color: var(--text); }
+
+    /* Animated mesh background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 50%, rgba(99,102,241,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 60% 80%, rgba(59,130,246,0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .page {
+      min-height: 100vh; display: flex;
+      align-items: center; justify-content: center;
+      padding: 24px; position: relative; z-index: 1;
+    }
+
+    .login-wrap {
+      width: 100%; max-width: 400px;
+    }
+
+    /* Logo area */
+    .logo-area {
+      text-align: center; margin-bottom: 32px;
+    }
+    .logo-icon {
+      width: 60px; height: 60px; border-radius: 16px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 28px; margin-bottom: 14px;
+      box-shadow: 0 0 30px rgba(99,102,241,0.35), 0 0 60px rgba(99,102,241,0.12);
+    }
+    .logo-name {
+      font-size: 22px; font-weight: 700; color: var(--text);
+      letter-spacing: -0.3px; margin-bottom: 4px;
+    }
+    .logo-sub {
+      font-family: var(--fm); font-size: 10px; color: var(--text3);
+      letter-spacing: 2.5px; text-transform: uppercase;
+    }
+
+    /* Card */
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.08);
+    }
+    .login-card-title {
+      font-size: 16px; font-weight: 600; color: var(--text);
+      margin-bottom: 4px;
+    }
+    .login-card-sub {
+      font-family: var(--fm); font-size: 11px; color: var(--text3);
+      margin-bottom: 22px;
+    }
+
+    /* Error messages */
+    .login-errors {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 8px; padding: 10px 14px;
+      margin-bottom: 16px; font-size: 13px; color: #fca5a5;
+    }
+
+    /* Form */
+    .fg { margin-bottom: 14px; }
+    .fl {
+      display: block; font-family: var(--fm); font-size: 10px;
+      color: var(--text2); letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .fc {
+      width: 100%; background: var(--surf); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 13px; border-radius: 8px;
+      font-family: var(--ff); font-size: 14px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .fc:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.14);
+    }
+    .fc::placeholder { color: var(--text3); }
+
+    .btn-login {
+      width: 100%; padding: 11px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; border: none; border-radius: 8px;
+      font-family: var(--ff); font-size: 14px; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.3px;
+      box-shadow: 0 4px 18px rgba(99,102,241,0.35);
+      transition: all 0.15s; margin-top: 4px;
+    }
+    .btn-login:hover {
+      box-shadow: 0 6px 24px rgba(99,102,241,0.5);
+      transform: translateY(-1px);
+    }
+    .btn-login:active { transform: translateY(0); }
+
+    /* Info badges */
+    .login-info {
+      display: flex; gap: 8px; margin-top: 20px;
+    }
+    .li-badge {
+      flex: 1; text-align: center; padding: 8px 6px;
+      background: rgba(99,102,241,0.06);
+      border: 1px solid var(--border); border-radius: 8px;
+    }
+    .li-icon { font-size: 16px; margin-bottom: 3px; }
+    .li-text { font-family: var(--fm); font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; }
+
+    /* Footer */
+    .login-footer {
+      text-align: center; margin-top: 20px;
+      font-family: var(--fm); font-size: 10px; color: var(--text3);
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="login-wrap">
+
+    <div class="logo-area">
+      <div class="logo-icon">🪵</div>
+      <div class="logo-name">Neminath Wood Industry</div>
+      <div class="logo-sub">Attendance Management System</div>
+    </div>
+
+    <div class="login-card">
+      <div class="login-card-title">Welcome back</div>
+      <div class="login-card-sub">Sign in to your account</div>
+
+      {% if form.errors %}
+      <div class="login-errors">
+        ✕ Invalid username or password. Please try again.
+      </div>
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+        <div class="fg">
+          <label class="fl">Username</label>
+          <input type="text" name="username" class="fc" placeholder="Enter your username" autofocus autocomplete="username" required>
+        </div>
+
+        <div class="fg">
+          <label class="fl">Password</label>
+          <input type="password" name="password" class="fc" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn-login">Sign In →</button>
+      </form>
+
+      <div class="login-info">
+        <div class="li-badge">
+          <div class="li-icon">📡</div>
+          <div class="li-text">WiFi Based</div>
+        </div>
+        <div class="li-badge">
+          <div class="li-icon">📊</div>
+          <div class="li-text">Auto Salary</div>
+        </div>
+        <div class="li-badge">
+          <div class="li-icon">🔐</div>
+          <div class="li-text">Admin Override</div>
+        </div>
+        <div class="li-badge">
+          <div class="li-icon">📤</div>
+          <div class="li-text">CSV Export</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      Neminath Wood Industry Pvt. Ltd. &nbsp;·&nbsp; Internal Portal
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

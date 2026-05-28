@@ -1,0 +1,189 @@
+{% extends "app/base.html" %}
+{% block title %}Overtime — NWI{% endblock %}
+{% block page_title %}Overtime{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Overtime Records</div>
+    <div class="ph-sub">{{ month_name }} {{ year }} &nbsp;·&nbsp; {{ ot_records|length }} entries</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:ot_add' %}" class="btn btn-primary">+ Add OT</a>
+  </div>
+</div>
+
+<!-- Month Filter -->
+<form method="get" class="filter-bar mb2">
+  <div class="fg mb0">
+    <label class="fl">Year</label>
+    <select name="year" class="fc" style="width:110px;">
+      {% for y in years %}
+      <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="fg mb0">
+    <label class="fl">Month</label>
+    <select name="month" class="fc" style="width:150px;">
+      {% for m_num, m_name in months %}
+      <option value="{{ m_num }}" {% if m_num == month %}selected{% endif %}>{{ m_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="padding-top:18px;">
+    <button type="submit" class="btn btn-primary btn-sm">View</button>
+  </div>
+</form>
+
+<!-- Total OT Card -->
+<div class="stat-grid mb2">
+  <div class="sc green">
+    <div class="sc-label">Total OT Amount</div>
+    <div class="sc-value" style="font-size:22px;">&#8377;{{ total_ot }}</div>
+    <div class="sc-sub">{{ month_name }} {{ year }}</div>
+  </div>
+  <div class="sc indigo">
+    <div class="sc-label">OT Entries</div>
+    <div class="sc-value" style="font-size:22px;">{{ ot_records|length }}</div>
+    <div class="sc-sub">this month</div>
+  </div>
+</div>
+
+<!-- OT Table -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <div class="table-wrap">
+    {% if ot_records %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Employee</th>
+          <th>Date</th>
+          <th>Per Day Salary</th>
+          <th>OT Type</th>
+          <th>OT Hours</th>
+          <th>Auto OT (&#8377;)</th>
+          <th>Override (&#8377;)</th>
+          <th>Final OT (&#8377;)</th>
+          <th>Reason</th>
+          <th>Added By</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ot in ot_records %}
+        <tr>
+          <td class="mono tm">{{ forloop.counter }}</td>
+          <td>
+            <div class="fw6">{{ ot.employee.name }}</div>
+            <div class="mono tm" style="font-size:10px;">{{ ot.employee.employee_id }}</div>
+          </td>
+          <td class="mono" style="font-size:12px;">{{ ot.date|date:"d M Y" }}</td>
+
+          <!-- PER DAY SALARY HINT -->
+          <td>
+            <span style="
+              background:rgba(245,200,66,0.12);
+              color:#d97706;
+              font-family:var(--fm);
+              font-size:11px;
+              font-weight:600;
+              padding:3px 8px;
+              border-radius:20px;
+              border:1px solid rgba(245,200,66,0.3);
+            ">
+              &#8377;{{ ot.per_day }}/day
+            </span>
+          </td>
+
+          <td>
+            {% if ot.ot_type == 'full_day' %}
+            <span class="badge bg">Full Day</span>
+            {% else %}
+            <span class="badge bb">Hours</span>
+            {% endif %}
+          </td>
+
+          <td class="mono" style="font-size:12px;">
+            {% if ot.ot_type == 'hours' %}
+            {{ ot.ot_hours }}h
+            {% else %}
+            --
+            {% endif %}
+          </td>
+
+          <td class="mono ty fw6">&#8377;{{ ot.auto_ot_amount }}</td>
+
+          <!-- OVERRIDE FORM -->
+          <td>
+            <form method="post" action="{% url 'app:ot_list' %}"
+                  style="display:flex;align-items:center;gap:6px;">
+              {% csrf_token %}
+              <input type="hidden" name="ot_id" value="{{ ot.id }}">
+              <input type="number" name="admin_ot_override"
+                     value="{% if ot.admin_ot_override is not None %}{{ ot.admin_ot_override }}{% endif %}"
+                     placeholder="--" step="0.01" min="0"
+                     style="
+                       background:var(--bg-surface);color:var(--text);
+                       border:1px solid rgba(239,68,68,0.3);border-radius:6px;
+                       padding:4px 8px;font-size:12px;font-family:var(--fm);
+                       width:85px;outline:none;
+                     ">
+              <button type="submit" class="btn btn-danger btn-xs">&#10003;</button>
+            </form>
+          </td>
+
+          <td>
+            <strong style="
+              font-family:var(--fm);font-size:14px;
+              font-weight:700;color:var(--green);
+            ">
+              &#8377;{{ ot.final_ot_amount }}
+            </strong>
+          </td>
+
+          <td style="font-size:12px;color:var(--text2);max-width:150px;">
+            {{ ot.override_reason|truncatechars:40|default:"--" }}
+          </td>
+
+          <td style="font-size:12px;color:var(--text3);">
+            {{ ot.added_by|default:"--" }}
+          </td>
+
+          <td>
+            <form method="post"
+                  action="{% url 'app:ot_delete' ot.id %}"
+                  onsubmit="return confirm('Delete OT for {{ ot.employee.name }}?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <!-- TOTALS -->
+      <tfoot>
+        <tr>
+          <td colspan="8" style="padding:10px 12px;font-family:var(--fm);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">
+            Total OT — {{ ot_records|length }} entries
+          </td>
+          <td style="padding:10px 9px;">
+            <strong style="font-family:var(--fm);font-size:15px;font-weight:700;color:var(--green);">
+              &#8377;{{ total_ot }}
+            </strong>
+          </td>
+          <td colspan="3"></td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:56px;color:var(--text3);">
+      <div style="font-size:36px;margin-bottom:10px;">⏰</div>
+      <div style="margin-bottom:14px;">No OT records for {{ month_name }} {{ year }}.</div>
+      <a href="{% url 'app:ot_add' %}" class="btn btn-primary">+ Add OT</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

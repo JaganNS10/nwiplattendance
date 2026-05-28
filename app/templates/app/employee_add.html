@@ -1,0 +1,107 @@
+{% extends "app/base.html" %}
+{% block title %}Add Employee — NWI{% endblock %}
+{% block page_title %}Add Employee{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+  <div class="ph">
+    <div class="ph-left">
+      <div class="ph-title">Add New Employee</div>
+      <div class="ph-sub">Fill all required fields to register an employee</div>
+    </div>
+    <a href="{% url 'app:employee_list' %}" class="btn btn-outline">← Back</a>
+  </div>
+
+  <div class="card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <div class="card-hd"><span class="card-title">Personal Info</span></div>
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Employee ID *</label>
+          <input type="text" name="employee_id" class="fc" placeholder="e.g. NW-0042" required>
+          <div class="fhint">Unique ID — e.g. NW-XXXX</div>
+        </div>
+        <div class="fg">
+          <label class="fl">Full Name *</label>
+          <input type="text" name="name" class="fc" placeholder="Full name" required>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Gender</label>
+          <select name="gender" class="fc">
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+            <option value="O">Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Phone</label>
+          <input type="tel" name="phone" class="fc" placeholder="Mobile number">
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Email</label>
+          <input type="email" name="email" class="fc" placeholder="Email address">
+        </div>
+        <div class="fg">
+          <label class="fl">Address</label>
+          <input type="text" name="address" class="fc" placeholder="Residential address">
+        </div>
+      </div>
+
+      <hr class="div">
+      <div class="card-hd" style="margin-top:4px;border-bottom:none;padding-bottom:0;"><span class="card-title">Job Details</span></div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Department</label>
+          <select name="department" class="fc">
+            <option value="">— None —</option>
+            {% for dept in departments %}
+            <option value="{{ dept.id }}">{{ dept.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl">Designation *</label>
+          <input type="text" name="designation" class="fc" placeholder="e.g. Carpenter, Supervisor" required>
+        </div>
+      </div>
+
+      <div class="fr">
+        <div class="fg">
+          <label class="fl">Date Joined *</label>
+          <input type="date" name="date_joined" class="fc" required>
+        </div>
+        <div class="fg">
+          <label class="fl">Monthly Salary (₹) *</label>
+          <input type="number" name="monthly_salary" class="fc" min="1" step="0.01" placeholder="e.g. 15000" required>
+        </div>
+      </div>
+      <hr class="div">
+      <div class="card-hd" style="border-bottom:none;padding-bottom:0;">
+        <span class="card-title">Face Recognition</span>
+      </div>
+      <div class="fg">
+        <label class="fl">Face Photo *</label>
+        <input type="file" name="face_photo" accept="image/*" 
+              class="fc" style="padding:6px;" required>
+        <div class="fhint">
+          Upload a clear front-facing photo — used for daily attendance face scan
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;">✓ Add Employee</button>
+        <a href="{% url 'app:employee_list' %}" class="btn btn-outline" style="flex:1;justify-content:center;">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

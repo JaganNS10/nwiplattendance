@@ -1,0 +1,688 @@
+
+
+{% extends "app/base.html" %}
+{% block title %}Daily Attendance — NWI{% endblock %}
+{% block page_title %}Daily Attendance{% endblock %}
+
+{% block extra_style %}
+.att-table thead th { font-size: 10px; padding: 8px 10px; }
+.att-table tbody td { padding: 6px 8px; }
+.att-row.status-present   { border-left: 3px solid var(--green);  }
+.att-row.status-absent    { border-left: 3px solid var(--red);    }
+.att-row.status-paid_leave{ border-left: 3px solid var(--blue);   }
+.att-row.status-holiday   { border-left: 3px solid var(--purple); }
+select.status-sel {
+  background: var(--bg-surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 8px; font-size: 12px; font-family: var(--ff);
+  outline: none; cursor: pointer; width: 110px; transition: border-color 0.15s;
+}
+select.status-sel.val-present    { border-color: rgba(16,185,129,0.4); color: #34d399; }
+select.status-sel.val-absent     { border-color: rgba(239,68,68,0.4);  color: #f87171; }
+select.status-sel.val-paid_leave { border-color: rgba(59,130,246,0.4); color: #60a5fa; }
+select.status-sel.val-holiday    { border-color: rgba(139,92,246,0.4); color: #a78bfa; }
+.time-fc {
+  background: var(--bg-surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 7px; font-size: 12px; font-family: var(--fm);
+  outline: none; width: 88px; transition: border-color 0.15s;
+}
+.time-fc:focus { border-color: var(--accent); }
+.time-fc.face-locked {
+  background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.4);
+  color: #34d399; cursor: not-allowed;
+}
+.remarks-fc {
+  background: var(--bg-surface); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 5px 8px; font-size: 12px; width: 130px; outline: none;
+}
+.bulk-bar {
+  background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 10px; padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.save-bar {
+  position: static;
+  padding: 14px 16px;
+  margin-top: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(34,97,50,0.2);
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(34,97,50,0.1);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.session-bar {
+  background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.session-bar.inactive { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.2); }
+.session-timer { font-family: var(--fm); font-size: 13px; font-weight: 600; color: var(--green); padding: 4px 12px; background: rgba(16,185,129,0.12); border-radius: 6px; }
+.session-timer.warning { color: var(--yellow); background: rgba(245,158,11,0.12); }
+.session-timer.expired { color: var(--red);    background: rgba(239,68,68,0.12);  }
+.btn-face {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  cursor: pointer; border: 1px solid; transition: all 0.15s; white-space: nowrap;
+  background: rgba(99,102,241,0.1); border-color: rgba(99,102,241,0.3); color: var(--accent-lt);
+}
+.btn-face:hover  { background: rgba(99,102,241,0.2); }
+.btn-face:disabled { opacity: 0.4; cursor: not-allowed; }
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.modal-box {
+  background: var(--bg-card); border: 1px solid var(--border-glow);
+  border-radius: 16px; padding: 24px; width: 380px; max-width: 95vw;
+  box-shadow: 0 0 40px rgba(99,102,241,0.25);
+}
+.modal-title { font-family: var(--fm); font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+#cam-video { width: 100%; border-radius: 10px; border: 2px solid var(--border); background: #000; aspect-ratio: 4/3; object-fit: cover; display: block; }
+.face-overlay { position: relative; margin-bottom: 14px; }
+.face-guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 160px; height: 200px; border: 2px solid rgba(99,102,241,0.5); border-radius: 50%; pointer-events: none; }
+.face-status { text-align: center; padding: 8px; border-radius: 8px; font-family: var(--fm); font-size: 12px; margin-bottom: 12px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+.face-status.detecting { background: rgba(99,102,241,0.1); color: var(--accent-lt); }
+.face-status.matched   { background: rgba(16,185,129,0.1); color: #34d399; }
+.face-status.nomatch   { background: rgba(239,68,68,0.1);  color: #f87171; }
+.face-status.loading   { background: rgba(245,158,11,0.1); color: #fbbf24; }
+.emp-info-pill { display: flex; align-items: center; gap: 10px; background: var(--bg-surface); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+.emp-ava-sm { width: 32px; height: 32px; border-radius: 8px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; }
+.scan-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 4px; animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* Camera toggle button */
+.btn-cam-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  cursor: pointer; border: 1px solid rgba(99,102,241,0.3);
+  background: rgba(99,102,241,0.1); color: var(--accent-lt);
+  transition: all 0.15s;
+}
+.btn-cam-toggle:hover { background: rgba(99,102,241,0.2); }
+
+/* Model loading banner */
+#model-loading-banner {
+  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 8px; padding: 8px 14px; margin-bottom: 10px;
+  font-family: var(--fm); font-size: 11px; color: #fbbf24;
+  display: flex; align-items: center; gap: 8px;
+}
+#model-loading-banner.ready {
+  background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.25); color: #34d399;
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- face-api.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Daily Attendance Entry</div>
+    <div class="ph-sub">Mark attendance + scan faces — tamper-proof time capture</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:export_daily_pdf' %}?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-outline" target="_blank">📄 Export PDF</a>
+    <a href="{% url 'app:monthly_report' %}" class="btn btn-outline">📊 Monthly Report</a>
+  </div>
+</div>
+
+<!-- DATE SELECTOR -->
+<div class="card mb2">
+  <form method="get" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div class="fg mb0">
+      <label class="fl">Select Date</label>
+      <input type="date" name="date" value="{{ selected_date|date:'Y-m-d' }}" class="fc" style="width:180px;" onchange="this.form.submit()">
+    </div>
+    <div style="padding-top:18px;display:flex;gap:8px;">
+      <button type="submit" class="btn btn-primary btn-sm">Load</button>
+      <a href="?date={% now 'Y-m-d' %}" class="btn btn-outline btn-sm">Today</a>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="shiftDate(-1)">&#8249; Prev</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="shiftDate(1)">Next &#8250;</button>
+    </div>
+    <div style="padding-top:16px;margin-left:auto;font-family:var(--fm);font-size:12px;color:var(--text3);">{{ selected_date|date:"l, d F Y" }}</div>
+  </form>
+</div>
+
+{% if is_holiday %}
+<div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px 18px;margin-bottom:12px;color:#fbbf24;font-size:13px;">
+  Holiday / Non-Working Day - You can still enter records manually if needed.
+</div>
+{% endif %}
+
+<!-- SESSION BAR -->
+<div class="session-bar inactive" id="session-bar">
+  <div style="font-family:var(--fm);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Face Scan Session</div>
+  <div style="display:flex;align-items:center;gap:8px;" id="session-start-area">
+    <label style="font-family:var(--fm);font-size:11px;color:var(--text2);">Session Start:</label>
+    <input type="time" id="session-time-input" class="time-fc" style="width:100px;" value="{% now 'H:i' %}">
+    <button type="button" class="btn btn-success btn-sm" onclick="startSession()">&#9658; Start Session</button>
+  </div>
+  <div id="session-active-info" style="display:none;align-items:center;gap:12px;">
+    <span class="scan-dot"></span>
+    <span style="font-family:var(--fm);font-size:12px;color:var(--green);">Session Active</span>
+    <span style="font-family:var(--fm);font-size:12px;color:var(--text2);">Started: <strong id="session-display-time">--</strong></span>
+    <span class="session-timer" id="grace-timer">Grace: 30:00</span>
+    <button type="button" class="btn btn-danger btn-sm" onclick="endSession()">&#9632; End Session</button>
+  </div>
+  <div style="margin-left:auto;font-family:var(--fm);font-size:10px;color:var(--text3);text-align:right;">Within 30 min: session time<br>After 30 min: real scan time</div>
+</div>
+
+<!-- BULK FILL -->
+<div class="bulk-bar">
+  <span style="font-family:var(--fm);font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;">Bulk Fill:</span>
+  <button type="button" class="btn btn-success btn-sm" onclick="bulkStatus('present')">All Present</button>
+  <button type="button" class="btn btn-danger btn-sm" onclick="bulkStatus('absent')">All Absent</button>
+  <button type="button" class="btn btn-primary btn-sm" onclick="bulkStatus('holiday')">All Holiday</button>
+  <span style="margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--text2);">{{ records|length }} employees</span>
+</div>
+
+<!-- MAIN FORM -->
+<form method="post" id="att-form">
+  {% csrf_token %}
+  <input type="hidden" name="attendance_date" value="{{ selected_date|date:'Y-m-d' }}">
+  <div class="card mb0" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+      <table class="att-table">
+        <thead>
+          <tr>
+            <th style="width:36px;">S.No</th><th>Employee</th><th>ID</th><th>Designation</th>
+            <th>Face Scan</th><th>In Time</th><th>Out Time</th><th>Status</th><th>Late/Early</th><th>Remarks</th>
+          </tr>
+        </thead>
+        <tbody id="att-tbody">
+          {% for rec in records %}
+          <tr class="att-row status-{{ rec.status }}" id="row-{{ rec.employee.id }}" data-empid="{{ rec.employee.id }}" data-empcode="{{ rec.employee.employee_id }}">
+            <td class="mono tm ta-c">{{ forloop.counter }}</td>
+            <td>
+              <div class="fw6" style="font-size:13px;">{{ rec.employee.name }}</div>
+              <div class="mono tm" style="font-size:10px;">{{ rec.employee.department.name|default:"No Dept" }}</div>
+            </td>
+            <td class="mono ti" style="font-size:12px;">{{ rec.employee.employee_id }}</td>
+            <td style="font-size:12px;color:var(--text2);">{{ rec.employee.designation }}</td>
+            <td>
+              {% if rec.in_time %}
+                <span class="badge bg" id="face-done-{{ rec.employee.id }}">Scanned {{ rec.in_time|time:"H:i" }}</span>
+              {% elif rec.employee.face_photo %}
+                <button type="button" class="btn-face" id="face-btn-{{ rec.employee.id }}"
+                  onclick="openCamera('{{ rec.employee.employee_id }}', {{ rec.employee.id }}, '{{ rec.employee.name }}')">
+                  Scan Face
+                </button>
+              {% else %}
+                <span class="mono tm" style="font-size:10px;">No photo</span>
+              {% endif %}
+            </td>
+            <td>
+              <input type="time" name="in_time_{{ rec.employee.id }}" id="in-{{ rec.employee.id }}"
+                class="time-fc {% if rec.in_time %}face-locked{% endif %}"
+                value="{{ rec.in_time|time:'H:i'|default:'' }}"
+                {% if rec.in_time %}readonly{% endif %}
+                onchange="calcDeviation({{ rec.employee.id }}, this.value, null)">
+            </td>
+            <td>
+              <input type="time" name="out_time_{{ rec.employee.id }}" id="out-{{ rec.employee.id }}"
+                class="time-fc" value="{{ rec.out_time|time:'H:i'|default:'' }}"
+                onchange="calcDeviation({{ rec.employee.id }}, null, this.value)">
+            </td>
+            <td>
+              <select name="status_{{ rec.employee.id }}" id="status-{{ rec.employee.id }}"
+                class="status-sel val-{{ rec.status }}" onchange="updateRowStyle({{ rec.employee.id }}, this.value)">
+                <option value="present"    {% if rec.status == 'present'    %}selected{% endif %}>Present</option>
+                <option value="absent"     {% if rec.status == 'absent'     %}selected{% endif %}>Absent</option>
+                <option value="paid_leave" {% if rec.status == 'paid_leave' %}selected{% endif %}>Paid Leave</option>
+                <option value="holiday"    {% if rec.status == 'holiday'    %}selected{% endif %}>Holiday</option>
+              </select>
+            </td>
+            <td style="min-width:75px;">
+              <div id="dev-{{ rec.employee.id }}">
+                {% if rec.late_minutes > 0 %}<div style="font-family:var(--fm);font-size:10px;color:var(--yellow);">+{{ rec.late_minutes }}m late</div>{% endif %}
+                {% if rec.early_exit_minutes > 0 %}<div style="font-family:var(--fm);font-size:10px;color:var(--orange);">-{{ rec.early_exit_minutes }}m early</div>{% endif %}
+                {% if rec.late_minutes == 0 and rec.early_exit_minutes == 0 %}<span class="mono tm" style="font-size:11px;">--</span>{% endif %}
+              </div>
+            </td>
+            <td><input type="text" name="remarks_{{ rec.employee.id }}" class="remarks-fc" value="{{ rec.remarks }}" placeholder="Optional..." maxlength="200"></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text3);">No active employees found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="save-bar">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div>
+        <div class="fw6" style="font-size:14px;">{{ selected_date|date:"d F Y" }}</div>
+        <div class="mono tm" style="font-size:11px;">{{ records|length }} employees</div>
+      </div>
+      <div class="flex gap2" style="font-family:var(--fm);font-size:11px;">
+        <span class="tg">P: <strong id="cnt-p">0</strong></span>
+        <span class="tr">A: <strong id="cnt-a">0</strong></span>
+        <span class="tb">PL: <strong id="cnt-pl">0</strong></span>
+        <span class="ty">Late: <strong id="cnt-l">0</strong></span>
+      </div>
+    </div>
+    <div class="flex gap2">
+      <a href="?date={{ selected_date|date:'Y-m-d' }}" class="btn btn-ghost">Reset</a>
+      <button type="submit" class="btn btn-primary" style="padding:10px 28px;font-size:15px;">Save All Attendance</button>
+    </div>
+  </div>
+</form>
+
+<!-- CAMERA MODAL -->
+<div class="modal-overlay" id="cam-modal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>Face Check-In</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <!-- Camera toggle button -->
+        <button type="button" class="btn-cam-toggle" id="btn-cam-toggle" onclick="toggleCamera()" title="Switch Camera">
+          🔄 Flip
+        </button>
+        <button type="button" onclick="closeCamera()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;">✕</button>
+      </div>
+    </div>
+
+    <!-- Model loading status banner -->
+    <div id="model-loading-banner">
+      ⏳ Loading face recognition models...
+    </div>
+
+    <div class="emp-info-pill">
+      <div class="emp-ava-sm" id="cam-emp-ava">?</div>
+      <div>
+        <div class="fw6" id="cam-emp-name">--</div>
+        <div class="mono tm" style="font-size:11px;" id="cam-emp-id">--</div>
+      </div>
+    </div>
+    <div class="face-overlay">
+      <video id="cam-video" autoplay playsinline muted></video>
+      <div class="face-guide"></div>
+    </div>
+    <div class="face-status detecting" id="face-status-msg">Align face within the oval guide...</div>
+    <div style="display:flex;gap:10px;">
+      <button type="button" class="btn btn-primary" style="flex:1;justify-content:center;" id="btn-capture" onclick="captureFace()">Capture and Match</button>
+      <button type="button" class="btn btn-ghost" onclick="closeCamera()">Cancel</button>
+    </div>
+    <canvas id="cam-canvas" style="display:none;"></canvas>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ═══════════════════════════════════════════════
+// FACE-API.JS MODEL LOADING
+// ═══════════════════════════════════════════════
+let faceApiReady = false;
+
+async function loadFaceModels() {
+  const MODEL_URL = '/static/models';  // <-- place model files here
+  try {
+    await Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+    ]);
+    faceApiReady = true;
+    const banner = document.getElementById('model-loading-banner');
+    if (banner) {
+      banner.textContent = '✅ Face recognition ready';
+      banner.classList.add('ready');
+      setTimeout(() => { banner.style.display = 'none'; }, 3000);
+    }
+    console.log('face-api.js models loaded ✅');
+  } catch (err) {
+    console.error('Failed to load face-api models:', err);
+    const banner = document.getElementById('model-loading-banner');
+    if (banner) banner.textContent = '⚠️ Could not load face models. Check /static/models/ path.';
+  }
+}
+loadFaceModels();
+
+// ═══════════════════════════════════════════════
+// SESSION
+// ═══════════════════════════════════════════════
+let sessionActive = false, sessionStartTime = null, graceInterval = null;
+const GRACE_MINS = 30;
+
+function startSession() {
+  const t = document.getElementById('session-time-input').value;
+  if (!t) { alert('Please set a session start time.'); return; }
+  sessionStartTime = t; sessionActive = true;
+  document.getElementById('session-start-area').style.display = 'none';
+  document.getElementById('session-active-info').style.display = 'flex';
+  document.getElementById('session-display-time').textContent = t;
+  document.getElementById('session-bar').classList.remove('inactive');
+  startGraceTimer();
+}
+
+function endSession() {
+  sessionActive = false; sessionStartTime = null;
+  clearInterval(graceInterval);
+  document.getElementById('session-start-area').style.display = 'flex';
+  document.getElementById('session-active-info').style.display = 'none';
+  document.getElementById('session-bar').classList.add('inactive');
+  document.getElementById('grace-timer').textContent = 'Grace: 30:00';
+  document.getElementById('grace-timer').className = 'session-timer';
+}
+
+function startGraceTimer() {
+  const [sh, sm] = sessionStartTime.split(':').map(Number);
+  clearInterval(graceInterval);
+  graceInterval = setInterval(() => {
+    const now = new Date();
+    const elapsed = ((now.getHours()*60+now.getMinutes()) - (sh*60+sm)) + now.getSeconds()/60;
+    const rem = GRACE_MINS - elapsed;
+    const el = document.getElementById('grace-timer');
+    if (rem > 0) {
+      const m = Math.floor(rem), s = Math.floor((rem-m)*60);
+      el.textContent = 'Grace: ' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+      el.className = 'session-timer' + (rem < 5 ? ' warning' : '');
+    } else {
+      el.textContent = 'Grace: EXPIRED';
+      el.className = 'session-timer expired';
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════
+// CAMERA  (front / back toggle)
+// ═══════════════════════════════════════════════
+let curEmpId = null, curEmpPk = null, curEmpName = null;
+let mediaStream = null;
+let useFrontCamera = true;   // default: front (selfie) camera
+
+async function startCamera() {
+  // Stop any existing stream first
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop());
+    mediaStream = null;
+  }
+
+  const constraints = {
+    video: useFrontCamera
+      ? { facingMode: 'user' }
+      : { facingMode: { exact: 'environment' } }
+  };
+
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (e) {
+    // exact: 'environment' can throw on desktop — fall back to any camera
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    } catch (e2) {
+      setStatus('nomatch', 'Camera access denied. Please allow camera permission.');
+      document.getElementById('btn-capture').disabled = true;
+      return;
+    }
+  }
+
+  const video = document.getElementById('cam-video');
+  video.srcObject = mediaStream;
+}
+
+async function toggleCamera() {
+  useFrontCamera = !useFrontCamera;
+  const btn = document.getElementById('btn-cam-toggle');
+  btn.textContent = useFrontCamera ? '🔄 Flip' : '🔄 Flip';
+  setStatus('detecting', 'Switching camera...');
+  await startCamera();
+  setStatus('detecting', 'Align face within the oval guide...');
+}
+
+async function openCamera(empId, empPk, empName) {
+  curEmpId = empId; curEmpPk = empPk; curEmpName = empName;
+  document.getElementById('cam-emp-name').textContent = empName;
+  document.getElementById('cam-emp-id').textContent   = empId;
+  document.getElementById('cam-emp-ava').textContent  = empName.charAt(0).toUpperCase();
+  setStatus('detecting', 'Align face within the oval guide...');
+  document.getElementById('btn-capture').disabled = false;
+  document.getElementById('cam-modal').style.display = 'flex';
+
+  // Show model banner if not yet ready
+  const banner = document.getElementById('model-loading-banner');
+  if (!faceApiReady) {
+    banner.style.display = 'flex';
+    banner.textContent = '⏳ Loading face recognition models...';
+    banner.classList.remove('ready');
+  }
+
+  await startCamera();
+}
+
+function closeCamera() {
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  document.getElementById('cam-modal').style.display = 'none';
+  document.getElementById('cam-video').srcObject = null;
+  curEmpId = curEmpPk = curEmpName = null;
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById('face-status-msg');
+  el.className = 'face-status ' + type;
+  el.textContent = msg;
+}
+
+// ═══════════════════════════════════════════════
+// CAPTURE + FACE MATCH
+// ═══════════════════════════════════════════════
+async function captureFace() {
+  if (!curEmpId) return;
+  const btn = document.getElementById('btn-capture');
+  btn.disabled = true;
+
+  // Wait for models if not ready yet
+  if (!faceApiReady) {
+    setStatus('loading', 'Waiting for face models to load...');
+    await new Promise(resolve => {
+      const wait = setInterval(() => {
+        if (faceApiReady) { clearInterval(wait); resolve(); }
+      }, 300);
+    });
+  }
+
+  setStatus('loading', 'Capturing frame... please hold still.');
+  const video  = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const frameB64 = canvas.toDataURL('image/jpeg', 0.85);
+
+  setStatus('loading', 'Loading reference photo...');
+  let refPhoto = null;
+  try {
+    const r = await fetch('/face/photo/' + curEmpId + '/');
+    const d = await r.json();
+    if (!d.success) { setStatus('nomatch', 'Error: ' + d.error); btn.disabled = false; return; }
+    refPhoto = d.photo;
+  } catch (e) {
+    setStatus('nomatch', 'Could not load reference photo.');
+    btn.disabled = false; return;
+  }
+
+  setStatus('loading', 'Comparing faces using AI...');
+  const matched = await compareFaces(frameB64, refPhoto);
+
+  if (!matched) {
+    setStatus('nomatch', 'Face not matched! Ensure good lighting and face the camera directly.');
+    btn.disabled = false; return;
+  }
+
+  setStatus('matched', 'Face matched! Saving check-in...');
+  try {
+    const resp = await fetch('/face/checkin/', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body:    JSON.stringify({
+        employee_id:   curEmpId,
+        session_start: sessionActive ? sessionStartTime : null,
+        matched:       true
+      })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      setStatus('matched', result.message);
+      const inEl = document.getElementById('in-' + curEmpPk);
+      if (inEl) { inEl.value = result.in_time; inEl.classList.add('face-locked'); inEl.readOnly = true; }
+      const stEl = document.getElementById('status-' + curEmpPk);
+      if (stEl) { stEl.value = 'present'; updateRowStyle(curEmpPk, 'present'); }
+      const fBtn = document.getElementById('face-btn-' + curEmpPk);
+      if (fBtn) fBtn.outerHTML = '<span class="badge bg" id="face-done-' + curEmpPk + '">Scanned ' + result.in_time + '</span>';
+      calcDeviation(curEmpPk, result.in_time, null);
+      setTimeout(closeCamera, 1800);
+    } else {
+      setStatus('nomatch', result.error);
+      btn.disabled = false;
+    }
+  } catch (e) {
+    setStatus('nomatch', 'Server error. Try again.');
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// FACE COMPARISON  — face-api.js descriptor method
+// ═══════════════════════════════════════════════
+async function compareFaces(b64Live, b64Ref) {
+  // Helper: load a base64/URL string into an HTMLImageElement
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload  = () => resolve(img);
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = src;
+    });
+  }
+
+  try {
+    const [liveImg, refImg] = await Promise.all([
+      loadImage(b64Live),
+      loadImage(b64Ref),
+    ]);
+
+    // Detect face + compute 128-d descriptor for live frame
+    const liveResult = await faceapi
+      .detectSingleFace(liveImg)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    // Detect face + compute 128-d descriptor for reference photo
+    const refResult = await faceapi
+      .detectSingleFace(refImg)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!liveResult) {
+      setStatus('nomatch', 'No face detected in camera. Ensure good lighting and look straight.');
+      return false;
+    }
+    if (!refResult) {
+      setStatus('nomatch', 'No face detected in reference photo. Please contact admin.');
+      return false;
+    }
+
+    // Euclidean distance between descriptors
+    // 0.0 = identical  |  lower = more similar  |  > 0.6 = different person
+    const distance = faceapi.euclideanDistance(
+      liveResult.descriptor,
+      refResult.descriptor
+    );
+    console.log('Face distance:', distance.toFixed(4));
+
+    // Threshold: 0.5 strict · 0.55 recommended · 0.6 lenient
+    return distance <= 0.55;
+
+  } catch (err) {
+    console.error('compareFaces error:', err);
+    setStatus('nomatch', 'Face comparison failed. Please try again.');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════
+// DEVIATION + COUNTERS
+// ═══════════════════════════════════════════════
+const GI = 9*60, GO = 18*60+50;
+
+function toM(t) {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return h*60 + m;
+}
+
+function calcDeviation(id, iv, ov) {
+  const row = document.getElementById('row-' + id);
+  const ie  = row.querySelector('[name="in_time_'  + id + '"]');
+  const oe  = row.querySelector('[name="out_time_' + id + '"]');
+  const im  = toM(iv !== null ? iv : ie.value);
+  const om  = toM(ov !== null ? ov : oe.value);
+  let late = 0, early = 0;
+  if (im && im > GI) late  = im - GI;
+  if (om && om > 12*60 && om < GO) early = GO - om;
+  let h = '';
+  if (late  > 0) h += `<div style="font-family:var(--fm);font-size:10px;color:var(--yellow);">+${late}m late</div>`;
+  if (early > 0) h += `<div style="font-family:var(--fm);font-size:10px;color:var(--orange);">-${early}m early</div>`;
+  if (!h) h = '<span class="mono tm" style="font-size:11px;">--</span>';
+  document.getElementById('dev-' + id).innerHTML = h;
+  updateCounters();
+}
+
+function updateRowStyle(id, status) {
+  const row = document.getElementById('row-' + id);
+  const sel = row.querySelector('.status-sel');
+  row.className = 'att-row status-' + status;
+  if (sel) sel.className = 'status-sel val-' + status;
+  updateCounters();
+}
+
+function updateCounters() {
+  let p = 0, a = 0, pl = 0, l = 0;
+  document.querySelectorAll('.status-sel').forEach(s => {
+    if      (s.value === 'present')    p++;
+    else if (s.value === 'absent')     a++;
+    else if (s.value === 'paid_leave') pl++;
+  });
+  document.querySelectorAll('[style*="var(--yellow)"]').forEach(e => {
+    if (e.textContent.includes('late')) l++;
+  });
+  document.getElementById('cnt-p').textContent  = p;
+  document.getElementById('cnt-a').textContent  = a;
+  document.getElementById('cnt-pl').textContent = pl;
+  document.getElementById('cnt-l').textContent  = l;
+}
+
+function bulkStatus(s) {
+  document.querySelectorAll('.status-sel').forEach(el => {
+    el.value = s;
+    updateRowStyle(el.closest('tr').dataset.empid, s);
+  });
+}
+
+function bulkInTime(t) {
+  document.querySelectorAll('[name^="in_time_"]').forEach(el => {
+    if (!el.readOnly) { el.value = t; calcDeviation(el.closest('tr').dataset.empid, t, null); }
+  });
+}
+
+function bulkOutTime(t) {
+  document.querySelectorAll('[name^="out_time_"]').forEach(el => {
+    el.value = t;
+    calcDeviation(el.closest('tr').dataset.empid, null, t);
+  });
+}
+
+function shiftDate(d) {
+  const dt = new Date('{{ selected_date|date:"Y-m-d" }}');
+  dt.setDate(dt.getDate() + d);
+  window.location = '?date=' + dt.toISOString().slice(0, 10);
+}
+
+updateCounters();
+</script>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "app/base.html" %}
+{% block title %}Employees — NWI{% endblock %}
+{% block page_title %}Employees{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Employee Directory</div>
+    <div class="ph-sub">{{ total }} active employee(s)</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:employee_add' %}" class="btn btn-primary">+ Add Employee</a>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" class="filter-bar">
+  <div class="fg mb0">
+    <label class="fl">Search</label>
+    <input type="text" name="q" value="{{ search }}" placeholder="Name or Employee ID…" class="fc" style="width:220px;">
+  </div>
+  <div class="fg mb0">
+    <label class="fl">Department</label>
+    <select name="dept" class="fc" style="width:170px;">
+      <option value="">All Departments</option>
+      {% for d in departments %}
+      <option value="{{ d.id }}" {% if d.id|stringformat:"s" == dept %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="padding-top:18px;display:flex;gap:8px;">
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <a href="{% url 'app:employee_list' %}" class="btn btn-outline btn-sm">Reset</a>
+  </div>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden;">
+  <div class="table-wrap">
+    {% if employees %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Designation</th>
+          <th>Phone</th>
+          <th>Monthly Salary</th>
+          <th>Joined</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+        <tr>
+          <td class="mono ti fw6">{{ emp.employee_id }}</td>
+          <td>
+            <div class="flex ac gap1">
+              <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+                color:#fff;flex-shrink:0;">{{ emp.name|first }}</div>
+              <div>
+                <div class="fw6">{{ emp.name }}</div>
+                <div class="mono tm" style="font-size:10px;">{{ emp.email|default:"—" }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:12px;color:var(--text2);">{{ emp.department.name|default:"—" }}</td>
+          <td style="font-size:12px;">{{ emp.designation }}</td>
+          <td class="mono" style="font-size:12px;">{{ emp.phone|default:"—" }}</td>
+          <td class="mono fw6" style="font-size:13px;color:var(--green);">₹{{ emp.monthly_salary }}</td>
+          <td class="mono tm" style="font-size:12px;">{{ emp.date_joined|date:"d M Y" }}</td>
+          <td>
+            {% if emp.status == 'active' %}<span class="badge bg">Active</span>
+            {% else %}<span class="badge bgr">Inactive</span>{% endif %}
+          </td>
+          <td>
+            <div class="flex gap1">
+              <a href="{% url 'app:employee_detail' emp.employee_id %}" class="btn btn-outline btn-xs">View</a>
+              <a href="{% url 'app:employee_edit' emp.employee_id %}" class="btn btn-ghost btn-xs">Edit</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:56px;color:var(--text3);">
+      <div style="font-size:36px;margin-bottom:10px;">👥</div>
+      <div style="font-size:14px;margin-bottom:14px;">No employees found{% if search %} for "{{ search }}"{% endif %}.</div>
+      <a href="{% url 'app:employee_add' %}" class="btn btn-primary">Add First Employee</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

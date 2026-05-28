@@ -1,0 +1,214 @@
+{% extends "app/base.html" %}
+{% block title %}Monthly Report — NWI{% endblock %}
+{% block page_title %}Monthly Report{% endblock %}
+
+{% block extra_style %}
+.report-table thead th { font-size: 9px; padding: 8px 9px; }
+.report-table tbody td { padding: 8px 9px; font-size: 12px; }
+.override-form { display: flex; align-items: center; gap: 6px; }
+.override-input {
+  background: var(--bg-surface); color: var(--text);
+  border: 1px solid rgba(239,68,68,0.3); border-radius: 6px;
+  padding: 4px 8px; font-size: 12px; font-family: var(--fm);
+  width: 90px; outline: none; transition: border-color 0.15s;
+}
+.override-input:focus { border-color: var(--red); }
+.net-salary-cell {
+  font-family: var(--fm); font-size: 14px; font-weight: 700;
+  color: var(--green);
+}
+.net-salary-cell.reduced { color: var(--yellow); }
+.excess-cell { color: var(--red); }
+.late-cell   { color: var(--yellow); }
+{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Monthly Salary Report</div>
+    <div class="ph-sub">{{ month_name }} {{ year }} &nbsp;·&nbsp; {{ working_days }} working days &nbsp;·&nbsp; {{ report_data|length }} employees</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:export_excel' %}?year={{ year }}&month={{ month }}"
+       class="btn btn-success">
+      📊 Export Excel
+    </a>
+    <a href="{% url 'app:export_csv' %}?year={{ year }}&month={{ month }}" class="btn btn-outline">⬇ Export CSV</a>
+  </div>
+</div>
+
+<!-- Month selector -->
+<form method="get" class="filter-bar mb2">
+  <div class="fg mb0">
+    <label class="fl">Year</label>
+    <select name="year" class="fc" style="width:110px;">
+      {% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="fg mb0">
+    <label class="fl">Month</label>
+    <select name="month" class="fc" style="width:150px;">
+      {% for m_num, m_name in months %}<option value="{{ m_num }}" {% if m_num == month %}selected{% endif %}>{{ m_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="padding-top:18px;display:flex;gap:8px;">
+    <button type="submit" class="btn btn-primary btn-sm">Generate</button>
+  </div>
+</form>
+
+<!-- SUMMARY TOTALS -->
+<div class="stat-grid mb2">
+  <div class="sc indigo">
+    <div class="sc-label">Total Gross</div>
+    <div class="sc-value" style="font-size:20px;">₹{{ totals.monthly_salary }}</div>
+    <div class="sc-sub">all employees</div>
+  </div>
+  <div class="sc red">
+    <div class="sc-label">Absent Deductions</div>
+    <div class="sc-value" style="font-size:20px;">₹{{ totals.absent_deduction }}</div>
+  </div>
+  <div class="sc yellow">
+    <div class="sc-label">Total Debit</div>
+    <div class="sc-value" style="font-size:20px;">₹{{ totals.final_debit }}</div>
+    <div class="sc-sub">auto + overrides</div>
+  </div>
+  <div class="sc green">
+    <div class="sc-label">Total Net Payout</div>
+    <div class="sc-value" style="font-size:20px;">₹{{ totals.net_salary }}</div>
+    <div class="sc-sub">to be disbursed</div>
+  </div>
+</div>
+
+<!-- REPORT TABLE -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <div class="table-wrap">
+    {% if report_data %}
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Employee</th>
+          <th>Dept</th>
+          <th>Present</th>
+          <th>Absent</th>
+          <th>PL</th>
+          <th>Late (m)</th>
+          <th>Early (m)</th>
+          <th>Perm (m)</th>
+          <th>Excess (m)</th>
+          <th>Gross (₹)</th>
+          <th>-Absent (₹)</th>
+          <th>Auto Debit (₹)</th>
+          <th>Override Debit (₹)</th>
+          <th>Final Debit (₹)</th>
+          <th>Net Salary (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in report_data %}
+        <tr id="row-{{ d.employee.employee_id }}">
+          <td class="mono tm">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'app:employee_detail' d.employee.employee_id %}?year={{ year }}&month={{ month }}"
+               style="text-decoration:none;color:inherit;">
+              <div class="fw6" style="font-size:13px;">{{ d.employee.name }}</div>
+              <div class="mono tm" style="font-size:10px;">{{ d.employee.employee_id }}</div>
+            </a>
+          </td>
+          <td style="color:var(--text2);font-size:11px;">{{ d.employee.department.name|default:"—" }}</td>
+          <td class="mono tg fw6">{{ d.present_days }}</td>
+          <td class="mono {% if d.absent_days > 0 %}tr{% else %}tm{% endif %}">{{ d.absent_days }}</td>
+          <td class="mono tb">{{ d.paid_leave_days }}</td>
+          <td class="mono {% if d.total_late_minutes > 0 %}late-cell{% else %}tm{% endif %}">{{ d.total_late_minutes }}</td>
+          <td class="mono {% if d.total_early_exit_minutes > 0 %}late-cell{% else %}tm{% endif %}">{{ d.total_early_exit_minutes }}</td>
+          <td class="mono">{{ d.total_permission_minutes }}</td>
+          <td class="mono {% if d.excess_minutes > 0 %}excess-cell{% else %}tm{% endif %}">{{ d.excess_minutes }}</td>
+          <td class="mono">{{ d.monthly_salary }}</td>
+          <td class="mono {% if d.absent_deduction > 0 %}tr{% else %}tm{% endif %}">
+            {% if d.absent_deduction > 0 %}-{% endif %}{{ d.absent_deduction }}
+          </td>
+          <td class="mono {% if d.auto_debit_amount > 0 %}ty{% else %}tm{% endif %}">
+            {% if d.auto_debit_amount > 0 %}-{% endif %}{{ d.auto_debit_amount }}
+          </td>
+
+          <!-- ADMIN OVERRIDE DEBIT (inline editable form) -->
+          <td>
+            <form class="override-form" method="post"
+                  action="{% url 'app:debit_override' d.employee.employee_id %}">
+              {% csrf_token %}
+              <input type="hidden" name="year"  value="{{ year }}">
+              <input type="hidden" name="month" value="{{ month }}">
+              <input type="number" name="admin_debit_override"
+                     class="override-input"
+                     value="{% if d.admin_debit_override is not None %}{{ d.admin_debit_override }}{% endif %}"
+                     placeholder="—" step="0.01" min="0"
+                     title="Leave blank to use auto debit">
+              <button type="submit" class="btn btn-danger btn-xs" title="Save override">✓</button>
+            </form>
+            {% if d.admin_debit_override_reason %}
+            <div style="font-size:10px;color:var(--text3);margin-top:3px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                 title="{{ d.admin_debit_override_reason }}">{{ d.admin_debit_override_reason }}</div>
+            {% endif %}
+          </td>
+
+          <td class="mono {% if d.final_debit > 0 %}tr{% else %}tm{% endif %} fw6">
+            {% if d.final_debit > 0 %}-{% endif %}{{ d.final_debit }}
+          </td>
+
+          <!-- NET SALARY — highlight -->
+          <td>
+            <span class="net-salary-cell {% if d.net_salary < d.monthly_salary %}reduced{% endif %}">
+              ₹{{ d.net_salary }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+
+      <!-- TOTALS FOOTER -->
+      <tfoot>
+        <tr>
+          <td colspan="10" style="padding:10px 12px;font-family:var(--fm);font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;">
+            TOTALS — {{ report_data|length }} employees
+          </td>
+          <td class="mono fw6" style="padding:10px 9px;">{{ totals.monthly_salary }}</td>
+          <td class="mono tr fw6" style="padding:10px 9px;">-{{ totals.absent_deduction }}</td>
+          <td colspan="2" style="padding:10px 9px;"></td>
+          <td class="mono tr fw6" style="padding:10px 9px;">-{{ totals.final_debit }}</td>
+          <td style="padding:10px 9px;">
+            <span class="net-salary-cell" style="font-size:16px;">₹{{ totals.net_salary }}</span>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:60px;color:var(--text3);">
+      <div style="font-size:40px;margin-bottom:10px;">📊</div>
+      <div>No data for {{ month_name }} {{ year }}.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Override Help -->
+{% if report_data %}
+<div style="margin-top:12px;padding:10px 14px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:8px;font-size:12px;color:var(--text3);">
+  <strong style="color:#f87171;">Override Debit</strong> — Enter a custom debit amount and click ✓ to override the auto-calculated debit. Leave blank to restore auto debit. Override reason is optional but recommended.
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Scroll to anchor after override save (url has #employee_id)
+  if (window.location.hash) {
+    const el = document.getElementById('row-' + window.location.hash.substring(1));
+    if (el) {
+      el.style.background = 'rgba(99,102,241,0.1)';
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => el.style.background = '', 2000);
+    }
+  }
+</script>
+{% endblock %}

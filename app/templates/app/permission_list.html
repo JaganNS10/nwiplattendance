@@ -1,0 +1,101 @@
+{% extends "app/base.html" %}
+{% block title %}Permission Log — NWI{% endblock %}
+{% block page_title %}Permission Log{% endblock %}
+
+{% block content %}
+<div class="ph">
+  <div class="ph-left">
+    <div class="ph-title">Permission Log</div>
+    <div class="ph-sub">{{ month_name }} {{ year }} — {{ permissions|length }} entries</div>
+  </div>
+  <div class="ph-right">
+    <a href="{% url 'app:permission_add' %}" class="btn btn-primary">+ Add Permission</a>
+  </div>
+</div>
+
+<!-- Month/Year filter -->
+<form method="get" class="filter-bar">
+  <div class="fg mb0">
+    <label class="fl">Year</label>
+    <select name="year" class="fc" style="width:110px;">
+      {% for y in years %}<option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="fg mb0">
+    <label class="fl">Month</label>
+    <select name="month" class="fc" style="width:150px;">
+      {% for m_num, m_name in months %}<option value="{{ m_num }}" {% if m_num == month %}selected{% endif %}>{{ m_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div style="padding-top:18px;">
+    <button type="submit" class="btn btn-primary btn-sm">View</button>
+  </div>
+</form>
+
+<div class="card" style="padding:0;overflow:hidden;">
+  <div class="table-wrap">
+    {% if permissions %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Employee</th>
+          <th>Date</th>
+          <th>Minutes</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Added By</th>
+          <th>Buffer Used</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in permissions %}
+        <tr>
+          <td class="mono tm">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'app:employee_detail' p.employee.employee_id %}" style="text-decoration:none;color:inherit;">
+              <div class="fw6">{{ p.employee.name }}</div>
+              <div class="mono tm" style="font-size:10px;">{{ p.employee.employee_id }}</div>
+            </a>
+          </td>
+          <td class="mono" style="font-size:12px;">{{ p.date|date:"d M Y" }}</td>
+          <td>
+            <span style="font-family:var(--fm);font-size:14px;font-weight:700;
+              {% if p.requested_minutes > 60 %}color:var(--yellow){% else %}color:var(--text){% endif %}">
+              {{ p.requested_minutes }}m
+            </span>
+          </td>
+          <td style="font-size:12px;color:var(--text2);max-width:200px;">{{ p.reason|truncatechars:50|default:"—" }}</td>
+          <td>
+            {% if p.status == 'approved' %}<span class="badge bg">Approved</span>
+            {% else %}<span class="badge br">Rejected</span>{% endif %}
+          </td>
+          <td style="font-size:12px;color:var(--text3);">{{ p.added_by|default:"—" }}</td>
+          <td>
+            <!-- Show this month's buffer for this employee -->
+            <span class="mono" style="font-size:11px;color:var(--text3);">
+              —
+            </span>
+          </td>
+          <td>
+            <form method="post" action="{% url 'app:permission_delete' p.id %}"
+                  onsubmit="return confirm('Delete this permission entry for {{ p.employee.name }}?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-xs">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:56px;color:var(--text3);">
+      <div style="font-size:36px;margin-bottom:10px;">🔔</div>
+      <div>No permission entries for {{ month_name }} {{ year }}.</div>
+      <a href="{% url 'app:permission_add' %}" class="btn btn-primary mt1" style="margin-top:12px;">Add Permission</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
