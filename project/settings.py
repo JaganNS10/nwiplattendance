@@ -92,7 +92,8 @@ WSGI_APPLICATION = 'project.wsgi.application'
 #     )
 # }
 # Database — SQLite locally, PostgreSQL on Render
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get("DATABASE_URL")
+print(DATABASE_URL)
 if DATABASE_URL:
     # Production — Render PostgreSQL
     DATABASES = {
