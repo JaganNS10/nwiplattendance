@@ -177,4 +177,15 @@ CLOUDINARY_STORAGE = {
 }
 
 # Use Cloudinary for media files
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+print(os.environ.get('CLOUD_NAME'))
+print(os.environ.get('API_KEY'))
