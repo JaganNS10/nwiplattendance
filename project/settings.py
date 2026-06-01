@@ -98,6 +98,7 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # }
 # Database — SQLite locally, PostgreSQL on Render
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
 print(DATABASE_URL)
 if DATABASE_URL:
     # Production — Render PostgreSQL
@@ -155,7 +156,7 @@ USE_TZ = True
 # Static files
 STATIC_URL  = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # Media files
 MEDIA_URL  = '/media/'
@@ -169,7 +170,13 @@ CLOUDINARY_STORAGE = {
 }
 
 # Use Cloudinary for media files
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 print(os.environ.get('CLOUD_NAME'))
 print(os.environ.get('API_KEY'))
