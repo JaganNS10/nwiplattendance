@@ -178,5 +178,7 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 print(os.environ.get('CLOUD_NAME'))
 print(os.environ.get('API_KEY'))
