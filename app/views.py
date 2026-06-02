@@ -73,6 +73,84 @@ def dashboard(request):
 # 2. DAILY ATTENDANCE ENTRY  ⭐ Most Important Page
 # ============================================================
 
+# @login_required
+# def daily_attendance(request):
+#     """
+#     Admin selects a date → sees all employees in one table
+#     → enters In Time, Out Time, Status, Remarks
+#     → clicks Save All
+#     """
+#     today       = timezone.localdate()
+#     date_str    = request.GET.get('date', str(today))
+
+#     try:
+#         selected_date = datetime.date.fromisoformat(date_str)
+#     except ValueError:
+#         selected_date = today
+
+#     is_holiday = not is_working_day(selected_date)
+
+#     if request.method == 'POST':
+#         selected_date_str = request.POST.get('attendance_date')
+#         try:
+#             selected_date = datetime.date.fromisoformat(selected_date_str)
+#         except (ValueError, TypeError):
+#             selected_date = today
+
+#         employees = Employee.objects.filter(status='active').order_by('employee_id')
+#         saved     = 0
+
+#         for emp in employees:
+#             key_status   = f'status_{emp.id}'
+#             key_in       = f'in_time_{emp.id}'
+#             key_out      = f'out_time_{emp.id}'
+#             key_remarks  = f'remarks_{emp.id}'
+
+#             status  = request.POST.get(key_status, 'absent')
+#             in_raw  = request.POST.get(key_in, '').strip()
+#             out_raw = request.POST.get(key_out, '').strip()
+#             remarks = request.POST.get(key_remarks, '').strip()
+
+#             in_time  = None
+#             out_time = None
+
+#             if in_raw:
+#                 try:
+#                     in_time = datetime.time.fromisoformat(in_raw)
+#                 except ValueError:
+#                     pass
+
+#             if out_raw:
+#                 try:
+#                     out_time = datetime.time.fromisoformat(out_raw)
+#                 except ValueError:
+#                     pass
+
+#             record, _ = AttendanceRecord.objects.get_or_create(
+#                 employee = emp,
+#                 date     = selected_date,
+#             )
+#             record.status   = status
+#             record.in_time  = in_time
+#             record.out_time = out_time
+#             record.remarks  = remarks
+#             record.save()
+#             saved += 1
+
+#         messages.success(request, f'✅ Attendance saved for {saved} employees on {selected_date.strftime("%d %B %Y")}.')
+#         return redirect(f'{request.path}?date={selected_date}')
+
+#     # GET — load existing records
+#     records = get_or_create_daily_attendance(selected_date)
+
+#     context = {
+#         'selected_date': selected_date,
+#         'records':       records,
+#         'is_holiday':    is_holiday,
+#         'today':         today,
+#     }
+#     return render(request, 'app/daily_attendance.html', context)
+
 @login_required
 def daily_attendance(request):
     """
@@ -137,7 +215,28 @@ def daily_attendance(request):
             record.save()
             saved += 1
 
-        messages.success(request, f'✅ Attendance saved for {saved} employees on {selected_date.strftime("%d %B %Y")}.')
+            # ── AUTO CREATE OT IF SUNDAY ──
+            if selected_date.weekday() == 6:  # 6 = Sunday
+                if status == 'present':
+                    ot_exists = OvertimeRecord.objects.filter(
+                        employee = emp,
+                        date     = selected_date,
+                    ).exists()
+
+                    if not ot_exists:
+                        working_days = get_working_days_count(
+                            selected_date.year,
+                            selected_date.month,
+                        )
+                        OvertimeRecord.objects.create(
+                            employee        = emp,
+                            date            = selected_date,
+                            ot_type         = 'full_day',
+                            added_by        = 'Auto — Sunday Work',
+                            override_reason = 'Auto generated — Employee worked on Sunday',
+                        )
+
+        messages.success(request, f'Attendance saved for {saved} employees on {selected_date.strftime("%d %B %Y")}.')
         return redirect(f'{request.path}?date={selected_date}')
 
     # GET — load existing records
@@ -150,7 +249,6 @@ def daily_attendance(request):
         'today':         today,
     }
     return render(request, 'app/daily_attendance.html', context)
-
 
 # ============================================================
 # 3. EMPLOYEE MANAGEMENT
