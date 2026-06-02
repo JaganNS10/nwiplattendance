@@ -349,17 +349,44 @@ loadFaceModels();
 let sessionActive = false, sessionStartTime = null, graceInterval = null;
 const GRACE_MINS = 30;
 
+//function startSession() {
+//   const t = document.getElementById('session-time-input').value;
+//   if (!t) { alert('Please set a session start time.'); return; }
+//   sessionStartTime = t; sessionActive = true;
+//   document.getElementById('session-start-area').style.display = 'none';
+//   document.getElementById('session-active-info').style.display = 'flex';
+//   document.getElementById('session-display-time').textContent = t;
+//   document.getElementById('session-bar').classList.remove('inactive');
+//   startGraceTimer();
+// }
+
 function startSession() {
   const t = document.getElementById('session-time-input').value;
   if (!t) { alert('Please set a session start time.'); return; }
-  sessionStartTime = t; sessionActive = true;
-  document.getElementById('session-start-area').style.display = 'none';
+
+  const [sh, sm]    = t.split(':').map(Number);
+  const sessionMins = sh * 60 + sm;
+  const graceEnd    = 9 * 60; // 9:00 AM
+
+  if (sessionMins > graceEnd) {
+    alert(
+      '⚠ Warning!\n\n' +
+      'Session started after 9:00 AM.\n' +
+      'Grace window is DISABLED.\n\n' +
+      'All employees will get their REAL scan time and will be marked LATE!'
+    );
+    sessionStartTime = null; // no grace
+  } else {
+    sessionStartTime = t; // grace active
+  }
+
+  sessionActive = true;
+  document.getElementById('session-start-area').style.display  = 'none';
   document.getElementById('session-active-info').style.display = 'flex';
-  document.getElementById('session-display-time').textContent = t;
+  document.getElementById('session-display-time').textContent  = t;
   document.getElementById('session-bar').classList.remove('inactive');
   startGraceTimer();
 }
-
 function endSession() {
   sessionActive = false; sessionStartTime = null;
   clearInterval(graceInterval);
