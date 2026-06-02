@@ -177,6 +177,10 @@ select.status-sel.val-holiday    { border-color: rgba(139,92,246,0.4); color: #a
   <button type="button" class="btn btn-success btn-sm" onclick="bulkStatus('present')">All Present</button>
   <button type="button" class="btn btn-danger btn-sm" onclick="bulkStatus('absent')">All Absent</button>
   <button type="button" class="btn btn-primary btn-sm" onclick="bulkStatus('holiday')">All Holiday</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="bulkInTime('08:50')">⏰ Set 8:50 In</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="bulkInTime('09:00')">⏰ Set 9:00 In</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="bulkOutTime('18:50')">⏰ Set 6:50 Out</button>
+  <button type="button" class="btn btn-ghost btn-sm" onclick="bulkOutTime('19:00')">⏰ Set 7:00 Out</button>
   <span style="margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--text2);">{{ records|length }} employees</span>
 </div>
 
